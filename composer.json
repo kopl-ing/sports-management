@@ -1,0 +1,19 @@
+{
+    "name": "kopling/sports-management",
+    "description": "Manage a youth sports team -- roster, staff, match planning, and match tracking.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\SportsManagement\\": "src/"
+        }
+    }
+}
