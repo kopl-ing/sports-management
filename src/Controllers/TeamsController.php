@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Kopling\Core\People\Person;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamFormatPreset;
+use Kopling\SportsManagement\TeamMember;
 
 class TeamsController
 {
@@ -38,7 +39,7 @@ class TeamsController
         $this->authorizeStaff($request, $team);
 
         $team->load(['formatPreset', 'staff', 'members.person']);
-        $team->setRelation('members', $team->members->sortBy('person.name', SORT_NATURAL | SORT_FLAG_CASE)->values());
+        $team->setRelation('members', TeamMember::sorted($team->members));
 
         return view('kopling-sports-management::teams.show', [
             'team' => $team,

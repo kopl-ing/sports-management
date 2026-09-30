@@ -17,6 +17,7 @@ use Kopling\SportsManagement\MatchLineup;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMatch;
+use Kopling\SportsManagement\TeamMember;
 
 class MatchesController
 {
@@ -40,7 +41,7 @@ class MatchesController
             'team' => $team,
             'match' => $teamMatch,
             'timeline' => $teamMatch->timeline(),
-            'members' => $team->members->sortBy(fn ($member) => [$member->guest, $member->person->name])->values(),
+            'members' => TeamMember::sorted($team->members),
             'availability' => $teamMatch->availabilities->pluck('status', 'team_member_id'),
             'presets' => TeamFormatPreset::orderBy('name')->pluck('name', 'id'),
         ]);

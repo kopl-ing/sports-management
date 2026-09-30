@@ -7,6 +7,7 @@ namespace Kopling\SportsManagement;
 use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 use Kopling\Core\Database\Model;
 use Kopling\Core\People\Person;
 
@@ -46,6 +47,13 @@ class TeamMember extends Model
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /** Permanent players before guests, each by name. */
+    public static function sorted(Collection $members): Collection
+    {
+        return $members->sort(fn (TeamMember $a, TeamMember $b) => $a->guest <=> $b->guest
+            ?: strnatcasecmp($a->person->name, $b->person->name))->values();
     }
 
     /**

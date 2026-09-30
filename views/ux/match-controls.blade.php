@@ -1,6 +1,6 @@
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
-<div data-sm-controls class="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+<div data-sm-controls hx-replace-url:inherited="true" class="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
     <div class="flex items-center justify-end gap-2">
         @if (! $canTrack || $state === MatchState::Ended)
             @if ($running?->type === PeriodType::Break)

@@ -14,11 +14,25 @@
     $editable = $canMove;
     $clock = fn (int $seconds) => intdiv($seconds, 60).':'.sprintf('%02d', $seconds % 60);
     $minute = fn (int $seconds) => intdiv($seconds, 60)."'";
+    $playedRange = $state === MatchState::Planned ? null : $members->keys()->map(fn ($id) => $played[$id] ?? 0);
+    $playedTint = function (string $memberId) use ($playedRange, $played): string {
+        $min = $playedRange?->min();
+        $max = $playedRange?->max();
+        if ($playedRange === null || $max === $min) {
+            return '';
+        }
+        $share = (($played[$memberId] ?? 0) - $min) / ($max - $min);
+        [$color, $strength] = $share < 0.5 ? ['warning', 1 - 2 * $share] : ['info', 2 * $share - 1];
+        $fg = $strength >= 0.5 ? "var(--color-{$color}-content)" : 'var(--color-base-content)';
+
+        return sprintf('--badge-color: color-mix(in oklab, var(--color-%s) %d%%, var(--color-base-100)); --badge-fg: %s', $color, round($strength * 100), $fg);
+    };
     $name = fn (?string $memberId) => $memberId ? ($members->get($memberId)?->person->name ?? '?') : __('kopling-sports-management::messages.scorer_unknown');
 @endphp
 
 @section('content')
-    <div class="max-w-3xl flex flex-col gap-3">
+    {{-- Every action redirects back here; replace instead of push so Back leaves the match screen. --}}
+    <div hx-replace-url:inherited="true" class="max-w-3xl flex flex-col gap-3">
         <div class="tabs tabs-box tabs-sm">
             <input type="radio" name="sm-tab" value="field" class="tab" aria-label="{{ __('kopling-sports-management::messages.field_tab') }}" checked>
             <div class="tab-content pt-3">

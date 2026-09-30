@@ -50,7 +50,7 @@ class TrackingController
             'team' => $team,
             'match' => $teamMatch,
             'timeline' => $timeline,
-            'members' => $members->sortBy(fn ($member) => [$member->guest, mb_strtolower($member->person->name)])->keyBy('id'),
+            'members' => TeamMember::sorted($members)->keyBy('id'),
             'maxOnField' => $teamMatch->effectiveFormatPreset()?->players_on_field,
             'initials' => TeamMember::shortInitials($members),
             'placement' => $timeline->state() === MatchState::Planned

@@ -17,6 +17,7 @@
                     'minutesOnly' => true,
                     'ticking' => $ticking && array_key_exists($member->id, $onField),
                     'class' => 'indicator-item badge badge-sm tabular-nums',
+                    'style' => $playedTint($member->id),
                 ])
             @endif
             @if ($member->guest)

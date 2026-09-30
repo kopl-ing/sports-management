@@ -1,6 +1,6 @@
 @php($minutesOnly ??= false)
 {{-- Counts up from the server-computed elapsed time, so client clock skew doesn't matter. Always pass `ticking`: an inherited parent `$ticking` would otherwise win. --}}
-<span class="{{ $class ?? 'font-mono tabular-nums' }}"
+<span class="{{ $class ?? 'font-mono tabular-nums' }}" @if (! empty($style)) style="{{ $style }}" @endif
       @if ($ticking)
           x-data="{ base: {{ $seconds }}, t0: Date.now(), now: Date.now() }"
           x-init="setInterval(() => now = Date.now(), 1000)"
