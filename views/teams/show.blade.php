@@ -39,6 +39,10 @@
             @endif
         </div>
 
+        @if ($team->members->isNotEmpty() || $upcomingMatches->isNotEmpty() || $pastMatches->isNotEmpty())
+            @include('kopling-sports-management::teams.matches')
+        @endif
+
         <section class="card card-border bg-base-100">
             <div class="card-body gap-3">
                 <div class="flex items-center justify-between">
@@ -126,8 +130,6 @@
                 @endif
             </div>
         </section>
-
-        @include('kopling-sports-management::teams.matches')
 
         <section class="card card-border bg-base-100">
             <div class="card-body gap-3">

@@ -99,7 +99,7 @@
     <section class="flex flex-col gap-3">
         <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.time_played') }}</h2>
         <ul class="flex flex-col gap-1">
-            @foreach ($members->sortByDesc(fn ($member) => array_key_exists($member->id, $onField)) as $member)
+            @foreach ($members->sortByDesc(fn ($member) => $played[$member->id] ?? 0) as $member)
                 <li class="flex items-center gap-2 bg-base-100 border border-base-300 rounded-box px-3 py-1.5">
                     <span class="status {{ array_key_exists($member->id, $onField) ? 'status-success' : 'status-neutral' }}"
                           aria-label="{{ array_key_exists($member->id, $onField) ? __('kopling-sports-management::messages.on_field') : __('kopling-sports-management::messages.bench') }}"></span>
