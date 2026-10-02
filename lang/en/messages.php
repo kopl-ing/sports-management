@@ -142,6 +142,7 @@ return [
     'nobody' => 'Nobody',
     'substitute' => 'Substitute',
     'came_on' => ':name on',
+    'came_on_at' => ':name to :position',
     'went_off' => ':name off',
 
     'on_field' => 'On the field',

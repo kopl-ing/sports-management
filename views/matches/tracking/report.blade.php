@@ -76,7 +76,11 @@
                                 @endif
                             @else
                                 <span class="opacity-80">
-                                    {{ __($event->direction === SubstitutionDirection::On ? 'kopling-sports-management::messages.came_on' : 'kopling-sports-management::messages.went_off', ['name' => $name($event->team_member_id)]) }}
+                                    @if ($event->direction === SubstitutionDirection::On && $event->zone)
+                                        {{ __('kopling-sports-management::messages.came_on_at', ['name' => $name($event->team_member_id), 'position' => $event->zone->label()]) }}
+                                    @else
+                                        {{ __($event->direction === SubstitutionDirection::On ? 'kopling-sports-management::messages.came_on' : 'kopling-sports-management::messages.went_off', ['name' => $name($event->team_member_id)]) }}
+                                    @endif
                                 </span>
                             @endif
                             @if ($canTrack)

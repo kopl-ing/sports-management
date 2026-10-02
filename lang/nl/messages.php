@@ -142,6 +142,7 @@ return [
     'nobody' => 'Niemand',
     'substitute' => 'Wisselen',
     'came_on' => ':name erin',
+    'came_on_at' => ':name naar :position',
     'went_off' => ':name eruit',
 
     'on_field' => 'In het veld',
