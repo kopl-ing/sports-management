@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Kopling\Core\Database\Model;
 
 /**
- * A KNVB age-category format (e.g. "JO11", 8 players on the field). Round length/number of
- * rounds are deliberately not modeled here -- see the plan's "Format preset" decision.
+ * A KNVB age-category format (e.g. "JO11", 8 players on the field, 60 minutes of play). Only the
+ * total play time is modeled, never a round/break schedule -- see the plan's "Format preset" decision.
  */
 class TeamFormatPreset extends Model
 {
@@ -21,6 +21,7 @@ class TeamFormatPreset extends Model
     protected $fillable = [
         'name',
         'players_on_field',
+        'play_minutes',
         'rules_url',
     ];
 
@@ -28,6 +29,7 @@ class TeamFormatPreset extends Model
     {
         return [
             'players_on_field' => 'integer',
+            'play_minutes' => 'integer',
         ];
     }
 

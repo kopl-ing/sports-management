@@ -61,6 +61,8 @@ return [
     'scheduled_at' => 'Date & time',
     'team_default_preset' => 'Team default (:preset)',
     'team_default_preset_none' => 'Team default',
+    'play_minutes' => 'Play minutes',
+    'play_minutes_help' => 'Leave empty to use the format\'s play minutes.',
     'rules' => 'Rules',
 
     'availability' => 'Availability',

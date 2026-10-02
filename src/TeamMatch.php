@@ -21,6 +21,7 @@ class TeamMatch extends Model
         'home_away',
         'location_address',
         'format_preset_id',
+        'play_minutes',
         'scheduled_at',
     ];
 
@@ -29,6 +30,7 @@ class TeamMatch extends Model
         return [
             'home_away' => HomeAway::class,
             'scheduled_at' => 'datetime',
+            'play_minutes' => 'integer',
         ];
     }
 
@@ -85,5 +87,25 @@ class TeamMatch extends Model
     public function effectiveFormatPreset(): ?TeamFormatPreset
     {
         return $this->formatPreset ?? $this->team->formatPreset;
+    }
+
+    public function effectivePlayMinutes(): ?int
+    {
+        return $this->play_minutes ?? $this->effectiveFormatPreset()?->play_minutes;
+    }
+
+    /**
+     * Play time each of `$squadSize` players gets when the field is shared equally.
+     */
+    public function fairShareSeconds(int $squadSize): ?int
+    {
+        $minutes = $this->effectivePlayMinutes();
+        $onField = $this->effectiveFormatPreset()?->players_on_field;
+
+        if ($minutes === null || $onField === null || $squadSize === 0) {
+            return null;
+        }
+
+        return intdiv($minutes * 60 * min($onField, $squadSize), $squadSize);
     }
 }

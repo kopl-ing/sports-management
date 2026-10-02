@@ -15,7 +15,12 @@
     $clock = fn (int $seconds) => intdiv($seconds, 60).':'.sprintf('%02d', $seconds % 60);
     $minute = fn (int $seconds) => intdiv($seconds, 60)."'";
     $playedRange = $state === MatchState::Planned ? null : $members->keys()->map(fn ($id) => $played[$id] ?? 0);
-    $playedTint = function (string $memberId) use ($playedRange, $played): string {
+    $fairShare = $state === MatchState::Planned ? null : $match->fairShareSeconds($members->count());
+    $fairShareStyle = '--badge-color: var(--color-success); --badge-fg: var(--color-success-content)';
+    $playedTint = function (string $memberId) use ($playedRange, $played, $fairShare, $fairShareStyle): string {
+        if ($fairShare !== null && ($played[$memberId] ?? 0) >= $fairShare) {
+            return $fairShareStyle;
+        }
         $min = $playedRange?->min();
         $max = $playedRange?->max();
         if ($playedRange === null || $max === $min) {

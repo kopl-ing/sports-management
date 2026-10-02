@@ -10,10 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // A KNVB age-category format (e.g. "JO11", 8 players on the field). Deliberately no
-        // round-length/number-of-rounds columns -- see .docs/planning/team-management-extension-
-        // plan.md, "Format preset" -- those are tracked live per match instead, freely
-        // correctable, rather than baked into a fixed preset schedule.
+        // Deliberately no round-length/number-of-rounds columns -- see .docs/planning/sports-management-extension-plan.md, "Format preset".
         Schema::create('sm_team_format_presets', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name')->unique();

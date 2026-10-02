@@ -13,7 +13,7 @@ use Kopling\Core\People\Person;
 
 /**
  * A roster entry. One-to-one satellite on a `Person` (no login attached), same shape as
- * `activitypub_actors` -- see .docs/planning/team-management-extension-plan.md, "The roster
+ * `activitypub_actors` -- see .docs/planning/sports-management-extension-plan.md, "The roster
  * pattern". `guest` marks a member borrowed from another team for a match; still a regular
  * roster row, reusable if the same guest plays again.
  */

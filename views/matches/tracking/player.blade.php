@@ -18,6 +18,8 @@
                     'ticking' => $ticking && array_key_exists($member->id, $onField),
                     'class' => 'indicator-item badge badge-sm tabular-nums',
                     'style' => $playedTint($member->id),
+                    'limit' => $fairShare,
+                    'limitStyle' => $fairShareStyle,
                 ])
             @endif
             @if ($member->guest)

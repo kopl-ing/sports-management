@@ -142,6 +142,7 @@ class MatchesController
             'home_away' => ['required', Rule::enum(HomeAway::class)],
             'location_address' => ['nullable', 'string', 'max:1000'],
             'format_preset_id' => ['nullable', 'uuid', 'exists:sm_team_format_presets,id'],
+            'play_minutes' => ['nullable', 'integer', 'min:1', 'max:240'],
             'scheduled_at' => ['required', 'date'],
         ]);
     }
