@@ -49,6 +49,28 @@ class TeamMember extends Model
         return $this->belongsTo(Person::class);
     }
 
+    /**
+     * Whether this member's Person is only a roster record: no login, so nothing outside this roster refers to it.
+     */
+    public function holdsPersonOnly(): bool
+    {
+        $person = $this->person;
+
+        return $person !== null
+            && $person->email === null
+            && $person->password === null
+            && ! $person->identities()->exists();
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (self $member) {
+            if ($member->holdsPersonOnly()) {
+                $member->person->delete();
+            }
+        });
+    }
+
     /** Permanent players before guests, each by name. */
     public static function sorted(Collection $members): Collection
     {

@@ -136,24 +136,61 @@
                 <h2 class="card-title">{{ __('kopling-sports-management::messages.staff') }}</h2>
                 <ul class="list">
                     @foreach ($team->staff as $staffPerson)
-                        <li class="list-row flex items-center justify-between">
-                            <span>{{ $staffPerson->name }} <span class="opacity-60 text-sm">{{ $staffPerson->email }}</span></span>
-                            @if ($canManageTeam)
-                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.staff.destroy', [$team, $staffPerson]) }}"
-                                  hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_remove_staff') }}">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-error btn-outline shrink-0">{{ __('kopling-sports-management::messages.remove') }}</button>
-                            </form>
-                            @endif
+                        @php $isMe = $staffPerson->is(auth()->user()); @endphp
+                        <li class="list-row items-center">
+                            <div class="list-col-grow min-w-0 truncate">
+                                {{ $staffPerson->name }}
+                                @if ($staffPerson->pivot->owner)
+                                    <span class="badge badge-sm badge-outline">{{ __('kopling-sports-management::messages.owner') }}</span>
+                                @endif
+                                <span class="opacity-60 text-sm">{{ $staffPerson->email }}</span>
+                            </div>
+                            <div class="flex gap-2 shrink-0">
+                                @if ($isOwner && $canManageTeam && ! $staffPerson->pivot->owner)
+                                    <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.staff.owner', [$team, $staffPerson]) }}"
+                                          hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_make_owner') }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-ghost">{{ __('kopling-sports-management::messages.make_owner') }}</button>
+                                    </form>
+                                @endif
+                                @if ($isMe || ($isOwner && $canManageTeam && ! $staffPerson->pivot->owner))
+                                    <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.staff.destroy', [$team, $staffPerson]) }}"
+                                          hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.'.($isMe ? 'confirm_leave_team' : 'confirm_remove_staff')) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-sports-management::messages.'.($isMe ? 'leave_team' : 'remove')) }}</button>
+                                    </form>
+                                @endif
+                            </div>
                         </li>
                     @endforeach
                 </ul>
+
+                @if ($invitations->isNotEmpty())
+                    <h3 class="text-sm font-semibold opacity-60">{{ __('kopling-sports-management::messages.pending_invitations') }}</h3>
+                    <ul class="list">
+                        @foreach ($invitations as $invitation)
+                            <li class="list-row items-center">
+                                <div class="list-col-grow min-w-0 truncate opacity-60">{{ $invitation->email }}</div>
+                                @if ($canManageTeam)
+                                    <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.invitations.destroy', [$team, $invitation]) }}" hx-boost="true">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-ghost">{{ __('kopling-sports-management::messages.revoke') }}</button>
+                                    </form>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
                 @if ($canManageTeam)
-                <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.staff.store', $team) }}" hx-boost="true" class="flex gap-2">
+                <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.invitations.store', $team) }}" hx-boost="true" class="flex gap-2">
                     @csrf
                     <input type="email" name="email" placeholder="{{ __('kopling-sports-management::messages.staff_email_placeholder') }}" class="input" required>
                     <button type="submit" class="btn btn-primary">{{ __('kopling-sports-management::messages.add_staff') }}</button>
                 </form>
+                @endif
+                @if (session('status'))
+                    <p class="text-success text-sm">{{ session('status') }}</p>
                 @endif
                 @error('email')
                     <p class="text-error text-sm">{{ $message }}</p>
@@ -164,12 +201,15 @@
             </div>
         </section>
 
-        @if ($canManageTeam)
-        <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.destroy', $team) }}"
-              hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_team') }}" class="self-start">
-            @csrf
-            <button type="submit" class="btn btn-error btn-outline">{{ __('kopling-sports-management::messages.delete_team') }}</button>
-        </form>
-        @endif
+        <div class="flex flex-wrap items-center gap-2">
+            @if ($canManageTeam && $isOwner)
+                <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.destroy', $team) }}"
+                      hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_team') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-error btn-outline">{{ __('kopling-sports-management::messages.delete_team') }}</button>
+                </form>
+            @endif
+            <x-k::portal.slot :name="\Kopling\SportsManagement\Extension::TEAM_CONTROL_SLOT" :context="new \Kopling\Core\Ux\Context(subject: $team)" />
+        </div>
     </div>
 @endsection

@@ -24,6 +24,36 @@
             @endcan
         </div>
 
+        @if ($invitations->isNotEmpty())
+            <section class="card card-border bg-base-100">
+                <div class="card-body gap-3">
+                    <h2 class="card-title">{{ __('kopling-sports-management::messages.invitations') }}</h2>
+                    <ul class="list">
+                        @foreach ($invitations as $invitation)
+                            <li class="list-row items-center">
+                                <div class="list-col-grow min-w-0">
+                                    <p class="font-semibold truncate">{{ $invitation->team->name }}</p>
+                                    <p class="text-sm opacity-60 truncate">{{ $invitation->team->club }}
+                                        @if ($invitation->inviter)
+                                            &middot; {{ __('kopling-sports-management::messages.invited_by', ['name' => $invitation->inviter->name]) }}
+                                        @endif
+                                    </p>
+                                </div>
+                                <form method="POST" action="{{ route('kopling-sports-management::sports-management/invitations.decline', $invitation) }}" hx-boost="true">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-ghost">{{ __('kopling-sports-management::messages.decline') }}</button>
+                                </form>
+                                <form method="POST" action="{{ route('kopling-sports-management::sports-management/invitations.accept', $invitation) }}" hx-boost="true">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-primary">{{ __('kopling-sports-management::messages.accept') }}</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </section>
+        @endif
+
         @if ($teams->isEmpty())
             <p class="opacity-60">{{ __('kopling-sports-management::messages.no_teams') }}</p>
         @else

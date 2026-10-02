@@ -5,25 +5,33 @@ declare(strict_types=1);
 namespace Kopling\SportsManagement;
 
 use Kopling\Core\Extend\Icon;
+use Kopling\Core\Extend\Model;
+use Kopling\Core\Extend\ModerationTarget;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
+use Kopling\Core\Extension\Contract\RegistersModerationTargets;
+use Kopling\Core\People\Person;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Community\UserMenu;
 use Kopling\SportsManagement\Command\SeedKnvbFormatPresetsCommand;
 use Kopling\SportsManagement\Ux\MatchControls;
+use Kopling\SportsManagement\Ux\ModerationNav;
 use Kopling\SportsManagement\Ux\TeamsNav;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasIcons, HasPermissions, HasPortals
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, HasIcons, HasPermissions, HasPortals, RegistersModerationTargets
 {
+    public const TEAM_CONTROL_SLOT = 'kopling-sports-management::team.control';
+
     public static function name(): string
     {
         return 'Sports Management';
@@ -46,6 +54,8 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             new Icon(id: 'available', label: 'Available', default: 'fas-check'),
             new Icon(id: 'maybe', label: 'Maybe', default: 'fas-question'),
             new Icon(id: 'absent', label: 'Absent', default: 'fas-xmark'),
+            new Icon(id: 'team', label: 'Team', default: 'fas-user-group'),
+            new Icon(id: 'match', label: 'Match', default: 'fas-futbol'),
         ];
     }
 
@@ -102,12 +112,41 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             (new PortalExtension('kopling-sports-management::sports-management'))
                 ->routes(__DIR__.'/../routes/sports-management.php')
                 ->js(__DIR__.'/../js/app.js'),
+            (new PortalExtension('kopling-moderation::moderation'))
+                ->routes(__DIR__.'/../routes/moderation.php'),
+        ];
+    }
+
+    /**
+     * Roster members are children's records, not community members: no profile or other public page.
+     *
+     * @return array<Model>
+     */
+    public function models(): array
+    {
+        return [
+            (new Model(Person::class))
+                ->authorize('view', fn ($viewer, Person $person) => ! TeamMember::where('person_id', $person->id)->exists()),
+        ];
+    }
+
+    /**
+     * @return array<ModerationTarget>
+     */
+    public function moderationTargets(): array
+    {
+        return [
+            new ModerationTarget(
+                model: Team::class,
+                label: __('kopling-sports-management::messages.moderation.team'),
+                preview: 'kopling-sports-management::moderation.team-preview',
+            ),
         ];
     }
 
     public function ux(): ProvidesUxEntries
     {
-        return Ux::make()
+        $ux = Ux::make()
             ->add(UserMenu::class)
             ->in('kopling-sports-management::sports-management.topbar')
             ->as('user-menu')
@@ -116,7 +155,18 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ->as('match-controls')
             ->add(TeamsNav::class)
             ->in('kopling-sports-management::sports-management.sidebar-panel')
-            ->as('teams-nav');
+            ->as('teams-nav')
+            ->add(ModerationNav::class)
+            ->in('kopling-moderation::moderation.sidebar-panel')
+            ->as('moderation-nav');
+
+        if (class_exists(\Kopling\Moderation\Ux\ReportControlEntry::class)) {
+            $ux->add(\Kopling\Moderation\Ux\ReportControlEntry::class)
+                ->in(self::TEAM_CONTROL_SLOT)
+                ->as('team-report');
+        }
+
+        return $ux;
     }
 
     /**

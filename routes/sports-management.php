@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Kopling\SportsManagement\Controllers\MatchesController;
+use Kopling\SportsManagement\Controllers\StaffController;
 use Kopling\SportsManagement\Controllers\TeamMembersController;
 use Kopling\SportsManagement\Controllers\TeamsController;
 use Kopling\SportsManagement\Controllers\TrackingController;
@@ -14,15 +15,21 @@ Route::get('/{team}', [TeamsController::class, 'show'])->name('teams.show');
 Route::get('/{team}/matches/{teamMatch}', [MatchesController::class, 'show'])->name('matches.show');
 Route::get('/{team}/matches/{teamMatch}/track', [TrackingController::class, 'show'])->name('matches.track');
 
+Route::post('/invitations/{invitation}/accept', [StaffController::class, 'accept'])->name('invitations.accept');
+Route::post('/invitations/{invitation}/decline', [StaffController::class, 'decline'])->name('invitations.decline');
+// Leaving needs no permission; removing someone else is checked in the controller.
+Route::post('/{team}/staff/{person}/remove', [StaffController::class, 'remove'])->name('teams.staff.destroy');
+
 Route::middleware('can:kopling-sports-management::manage-teams')->group(function () {
-    Route::post('/', [TeamsController::class, 'store'])->name('teams.store');
+    Route::post('/', [TeamsController::class, 'store'])->middleware('throttle:10,60,sm-teams')->name('teams.store');
     Route::post('/{team}', [TeamsController::class, 'update'])->name('teams.update');
     Route::post('/{team}/delete', [TeamsController::class, 'destroy'])->name('teams.destroy');
 
-    Route::post('/{team}/staff', [TeamsController::class, 'addStaff'])->name('teams.staff.store');
-    Route::post('/{team}/staff/{person}/remove', [TeamsController::class, 'removeStaff'])->name('teams.staff.destroy');
+    Route::post('/{team}/invitations', [StaffController::class, 'invite'])->middleware('throttle:20,60,sm-invitations')->name('teams.invitations.store');
+    Route::post('/{team}/invitations/{invitation}/delete', [StaffController::class, 'revoke'])->name('teams.invitations.destroy');
+    Route::post('/{team}/staff/{person}/owner', [StaffController::class, 'makeOwner'])->name('teams.staff.owner');
 
-    Route::post('/{team}/members', [TeamMembersController::class, 'store'])->name('teams.members.store');
+    Route::post('/{team}/members', [TeamMembersController::class, 'store'])->middleware('throttle:60,60,sm-members')->name('teams.members.store');
     Route::post('/{team}/members/{teamMember}', [TeamMembersController::class, 'update'])->name('teams.members.update');
     Route::post('/{team}/members/{teamMember}/delete', [TeamMembersController::class, 'destroy'])->name('teams.members.destroy');
 });

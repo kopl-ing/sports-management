@@ -5,7 +5,10 @@
     @foreach ($teams as $team)
         <li>
             <a href="{{ route('kopling-sports-management::sports-management/teams.show', $team) }}"
-               class="@if ($currentTeam?->is($team) && $currentMatch === null) menu-active @endif">{{ $team->name }}</a>
+               class="@if ($currentTeam?->is($team) && $currentMatch === null) menu-active @endif">
+                <x-k::icon name="kopling-sports-management::team" />
+                {{ $team->name }}
+            </a>
         </li>
     @endforeach
 
@@ -15,15 +18,18 @@
             @php($live = $match->timeline()->state() === MatchState::Live)
             <li>
                 <a href="{{ route('kopling-sports-management::sports-management/matches.'.($live ? 'track' : 'show'), [$match->team, $match]) }}"
-                   class="flex flex-col items-start gap-0 @if ($currentMatch?->is($match)) menu-active @endif">
-                    <span class="flex items-center gap-2">
-                        @if ($live)
-                            <span class="status status-success" aria-label="{{ MatchState::Live->label() }}"></span>
-                        @endif
-                        {{ $match->opponent_name }}
-                    </span>
-                    <span class="text-xs opacity-60">
-                        @if ($teams->count() > 1){{ $match->team->name }} &middot; @endif{{ $live ? MatchState::Live->label() : $match->scheduled_at->translatedFormat('D j M, H:i') }}
+                   class="items-start @if ($currentMatch?->is($match)) menu-active @endif">
+                    <x-k::icon name="kopling-sports-management::match" class="mt-0.5" />
+                    <span class="flex flex-col">
+                        <span class="flex items-center gap-2">
+                            @if ($live)
+                                <span class="status status-success" aria-label="{{ MatchState::Live->label() }}"></span>
+                            @endif
+                            {{ $match->opponent_name }}
+                        </span>
+                        <span class="text-xs opacity-60">
+                            @if ($teams->count() > 1){{ $match->team->name }} &middot; @endif{{ $live ? MatchState::Live->label() : $match->scheduled_at->translatedFormat('D j M, H:i') }}
+                        </span>
                     </span>
                 </a>
             </li>
