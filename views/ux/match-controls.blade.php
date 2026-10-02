@@ -55,24 +55,25 @@
                 </form>
             @endif
 
-            @if ($state !== MatchState::Planned)
+            @if ($state === MatchState::Live)
+                <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.end', [$team, $match, $running]) }}"
+                      hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_end_match') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-square btn-ghost text-error"
+                            aria-label="{{ __('kopling-sports-management::messages.end_match') }}" title="{{ __('kopling-sports-management::messages.end_match') }}">
+                        <x-k::icon name="kopling-sports-management::stop" />
+                    </button>
+                </form>
+            @elseif ($state === MatchState::Ended)
                 <x-k::dropdown :label="__('kopling-sports-management::messages.more_actions')">
                     <x-slot:trigger>&vellip;</x-slot:trigger>
                     <li>
-                        @if ($state === MatchState::Live)
-                            <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.end', [$team, $match, $running]) }}"
-                                  hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_end_match') }}">
-                                @csrf
-                                <button type="submit" class="w-full text-start text-error">{{ __('kopling-sports-management::messages.end_match') }}</button>
-                            </form>
-                        @else
-                            <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.start', [$team, $match]) }}"
-                                  hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_resume_match') }}">
-                                @csrf
-                                <input type="hidden" name="type" value="{{ PeriodType::Play->value }}">
-                                <button type="submit" class="w-full text-start">{{ __('kopling-sports-management::messages.resume_match') }}</button>
-                            </form>
-                        @endif
+                        <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.start', [$team, $match]) }}"
+                              hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_resume_match') }}">
+                            @csrf
+                            <input type="hidden" name="type" value="{{ PeriodType::Play->value }}">
+                            <button type="submit" class="w-full text-start">{{ __('kopling-sports-management::messages.resume_match') }}</button>
+                        </form>
                     </li>
                 </x-k::dropdown>
             @endif

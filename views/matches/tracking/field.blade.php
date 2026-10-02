@@ -21,14 +21,11 @@
         </form>
     @endif
 
-    <div class="flex items-center justify-between text-sm opacity-60">
-        <span>{{ $state === MatchState::Planned ? __('kopling-sports-management::messages.lineup') : __('kopling-sports-management::messages.on_field') }}</span>
-        <span class="tabular-nums">{{ count($placement) }}{{ $maxOnField ? ' / '.$maxOnField : '' }}</span>
-    </div>
-
-    <div class="relative card card-border bg-base-100 flex-1 overflow-hidden">
+    <div class="relative flex items-center justify-between text-sm">
+        <span class="opacity-60">{{ $state === MatchState::Planned ? __('kopling-sports-management::messages.lineup') : __('kopling-sports-management::messages.on_field') }}</span>
+        <span class="tabular-nums opacity-60">{{ count($placement) }}{{ $maxOnField ? ' / '.$maxOnField : '' }}</span>
         @if ($canTrack && $state === MatchState::Live)
-            <div class="hidden group-data-[sm-goal]:flex absolute inset-x-2 top-2 z-10 alert alert-success py-2">
+            <div class="hidden group-data-[sm-goal]:flex absolute inset-x-0 bottom-0 z-10 alert alert-success py-2 shadow-md">
                 <span class="hidden group-data-[sm-goal=scorer]:inline">{{ __('kopling-sports-management::messages.tap_scorer') }}</span>
                 <span class="hidden group-data-[sm-goal=assist]:inline">{{ __('kopling-sports-management::messages.tap_assist') }}</span>
                 <div class="ms-auto flex gap-1">
@@ -37,6 +34,9 @@
                 </div>
             </div>
         @endif
+    </div>
+
+    <div class="card card-border bg-base-100 flex-1 overflow-hidden">
         @foreach ([Position::Forward, Position::Midfield, Position::Defender, Position::Keeper] as $zone)
             <div data-sm-zone="{{ $zone->value }}"
                  class="relative flex-1 flex flex-wrap items-center justify-center gap-5 p-2 border-b border-dashed border-base-300 last:border-b-0 data-[sm-over]:bg-primary/10 data-[sm-refused]:bg-error/15">

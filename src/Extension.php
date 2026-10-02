@@ -41,6 +41,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
         return [
             new Icon(id: 'pause', label: 'Break', default: 'fas-pause'),
             new Icon(id: 'play', label: 'Continue', default: 'fas-play'),
+            new Icon(id: 'stop', label: 'End match', default: 'fas-stop'),
             new Icon(id: 'available', label: 'Available', default: 'fas-check'),
             new Icon(id: 'maybe', label: 'Maybe', default: 'fas-question'),
             new Icon(id: 'absent', label: 'Absent', default: 'fas-xmark'),
