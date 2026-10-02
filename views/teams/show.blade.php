@@ -142,7 +142,7 @@
                             <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.staff.destroy', [$team, $staffPerson]) }}"
                                   hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_remove_staff') }}">
                                 @csrf
-                                <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-sports-management::messages.remove') }}</button>
+                                <button type="submit" class="btn btn-sm btn-error btn-outline shrink-0">{{ __('kopling-sports-management::messages.remove') }}</button>
                             </form>
                             @endif
                         </li>

@@ -20,6 +20,7 @@ use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Community\UserMenu;
 use Kopling\SportsManagement\Command\SeedKnvbFormatPresetsCommand;
 use Kopling\SportsManagement\Ux\MatchControls;
+use Kopling\SportsManagement\Ux\TeamsNav;
 
 class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasIcons, HasPermissions, HasPortals
 {
@@ -112,7 +113,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ->as('user-menu')
             ->add(MatchControls::class)
             ->in('kopling-sports-management::sports-management.topbar-start')
-            ->as('match-controls');
+            ->as('match-controls')
+            ->add(TeamsNav::class)
+            ->in('kopling-sports-management::sports-management.sidebar-panel')
+            ->as('teams-nav');
     }
 
     /**

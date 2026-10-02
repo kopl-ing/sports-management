@@ -1,0 +1,32 @@
+@use('Kopling\SportsManagement\MatchState')
+{{-- No target: boosted-without-target swaps `document.body`, same as `kopling-moderation::ux.queue-nav`. --}}
+<ul class="menu p-4 w-full" hx-boost:inherited="true">
+    <li class="menu-title">{{ __('kopling-sports-management::messages.teams') }}</li>
+    @foreach ($teams as $team)
+        <li>
+            <a href="{{ route('kopling-sports-management::sports-management/teams.show', $team) }}"
+               class="@if ($currentTeam?->is($team) && $currentMatch === null) menu-active @endif">{{ $team->name }}</a>
+        </li>
+    @endforeach
+
+    @if ($matches->isNotEmpty())
+        <li class="menu-title">{{ __('kopling-sports-management::messages.upcoming_matches') }}</li>
+        @foreach ($matches as $match)
+            @php($live = $match->timeline()->state() === MatchState::Live)
+            <li>
+                <a href="{{ route('kopling-sports-management::sports-management/matches.'.($live ? 'track' : 'show'), [$match->team, $match]) }}"
+                   class="flex flex-col items-start gap-0 @if ($currentMatch?->is($match)) menu-active @endif">
+                    <span class="flex items-center gap-2">
+                        @if ($live)
+                            <span class="status status-success" aria-label="{{ MatchState::Live->label() }}"></span>
+                        @endif
+                        {{ $match->opponent_name }}
+                    </span>
+                    <span class="text-xs opacity-60">
+                        @if ($teams->count() > 1){{ $match->team->name }} &middot; @endif{{ $live ? MatchState::Live->label() : $match->scheduled_at->translatedFormat('D j M, H:i') }}
+                    </span>
+                </a>
+            </li>
+        @endforeach
+    @endif
+</ul>

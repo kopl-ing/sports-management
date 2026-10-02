@@ -136,6 +136,8 @@ return [
     'on_field' => 'On the field',
     'bench' => 'Bench',
     'bench_empty' => 'Everyone is on the field.',
+    'fair_share' => "Fair share :minutes'",
+    'fair_share_help' => 'Play time per player when the field is shared equally; a badge turns green once reached.',
     'zone' => 'Zone',
     'one_keeper' => 'Only one keeper can be on the field.',
     'too_many_players' => 'At most :max players can be on the field.',
