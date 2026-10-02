@@ -49,7 +49,7 @@
     </div>
 
     <div data-sm-bench class="card card-border bg-base-200 data-[sm-over]:bg-primary/10">
-        <div data-sm-bench-list class="card-body flex-row flex-wrap items-center gap-5 p-3 min-h-24">
+        <div data-sm-bench-list class="card-body flex-row flex-wrap items-center justify-center gap-5 p-3 min-h-24">
             @forelse ($benchMembers as $member)
                 @include('kopling-sports-management::matches.tracking.player')
             @empty

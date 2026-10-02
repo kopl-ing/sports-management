@@ -1,6 +1,6 @@
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
-<div data-sm-controls hx-replace-url:inherited="true" class="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+<div data-sm-controls hx-replace-url:inherited="true" class="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
     <div class="flex items-center justify-end gap-2">
         @if (! $canTrack || $state === MatchState::Ended)
             @if ($running?->type === PeriodType::Break)
@@ -17,7 +17,7 @@
         @endif
     </div>
 
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-2">
         <span class="text-xl font-bold tabular-nums">{{ $score['us'] }}&ndash;{{ $score['them'] }}</span>
         @if ($canTrack && $state === MatchState::Live)
             <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}" hx-boost="true">
@@ -29,7 +29,7 @@
         @endif
     </div>
 
-    <div class="flex items-center justify-start gap-1">
+    <div class="flex items-center justify-between gap-4">
         @if ($canTrack)
             @if ($state !== MatchState::Ended)
                 <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.start', [$team, $match]) }}" hx-boost="true">
