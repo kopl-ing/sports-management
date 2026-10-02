@@ -87,7 +87,7 @@ return [
     'available_count_no_preset' => ':available beschikbaar',
     'save_availability' => 'Beschikbaarheid opslaan',
 
-    'track_match' => 'Wedstrijd bijhouden',
+    'track_match' => 'Wedstrijd spelen',
     'view_tracking' => 'Wedstrijdverslag',
     'back_to_match' => 'Terug naar wedstrijd',
     'match_state' => [
