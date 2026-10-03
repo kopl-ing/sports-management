@@ -1,34 +1,51 @@
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
-<div data-sm-controls hx-replace-url:inherited="true" class="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
+@php($readOnly = ! $canTrack || $state === MatchState::Ended)
+<div data-sm-controls hx-replace-url:inherited="true" @class(['w-full items-center gap-4', 'grid grid-cols-[1fr_auto_1fr]' => $readOnly, 'flex justify-between' => ! $readOnly])>
+    @if ($readOnly)
     <div class="flex items-center justify-end gap-2">
-        @if (! $canTrack || $state === MatchState::Ended)
-            @if ($running?->type === PeriodType::Break)
-                <span class="badge badge-warning badge-sm" title="{{ __('kopling-sports-management::messages.break') }}">
-                    @include('kopling-sports-management::matches.tracking.clock', ['seconds' => $timeline->length($running), 'ticking' => true])
-                </span>
-            @elseif ($state !== MatchState::Planned)
-                @include('kopling-sports-management::matches.tracking.clock', [
-                    'seconds' => $timeline->matchSeconds(),
-                    'ticking' => $ticking,
-                    'class' => 'font-mono tabular-nums',
-                ])
-            @endif
+        @if ($running?->type === PeriodType::Break)
+            <span class="badge badge-warning badge-sm" title="{{ __('kopling-sports-management::messages.break') }}">
+                @include('kopling-sports-management::matches.tracking.clock', ['seconds' => $timeline->length($running), 'ticking' => true])
+            </span>
+        @elseif ($state !== MatchState::Planned)
+            @include('kopling-sports-management::matches.tracking.clock', [
+                'seconds' => $timeline->matchSeconds(),
+                'ticking' => $ticking,
+                'class' => 'font-mono tabular-nums',
+            ])
         @endif
     </div>
+    @endif
 
     <div class="flex items-center gap-2">
-        <span class="text-xl font-bold tabular-nums">{{ $score['us'] }}&ndash;{{ $score['them'] }}</span>
+        <span class="text-xl font-bold tabular-nums whitespace-nowrap">{{ $score['us'] }}&ndash;{{ $score['them'] }}</span>
         @if ($canTrack && $state === MatchState::Live)
-            @foreach ($pointValues as $points)
+            @if (count($pointValues) === 1)
                 <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}" hx-boost="true">
                     @csrf
                     <input type="hidden" name="opponent" value="1">
-                    <input type="hidden" name="points" value="{{ $points }}">
+                    <input type="hidden" name="points" value="{{ $pointValues[0] }}">
                     <button type="submit" class="btn btn-xs btn-outline btn-error"
-                            aria-label="{{ $team->sport->trans('goal_opponent', ['opponent' => $match->opponent_name]) }}">+{{ $points }}</button>
+                            aria-label="{{ $team->sport->trans('goal_opponent', ['opponent' => $match->opponent_name]) }}">+{{ $pointValues[0] }}</button>
                 </form>
-            @endforeach
+            @else
+                <details class="dropdown dropdown-center" data-sm-opponent-points>
+                    <summary class="btn btn-xs btn-outline btn-error" aria-label="{{ $team->sport->trans('goal_opponent', ['opponent' => $match->opponent_name]) }}">+</summary>
+                    <ul class="dropdown-content menu bg-base-100 rounded-box z-10 mt-1 p-1 shadow-sm">
+                        @foreach ($pointValues as $points)
+                            <li>
+                                <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}" hx-boost="true">
+                                    @csrf
+                                    <input type="hidden" name="opponent" value="1">
+                                    <input type="hidden" name="points" value="{{ $points }}">
+                                    <button type="submit" class="btn btn-sm btn-ghost text-error tabular-nums">+{{ $points }}</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                </details>
+            @endif
         @endif
     </div>
 
