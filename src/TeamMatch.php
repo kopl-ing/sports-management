@@ -95,7 +95,7 @@ class TeamMatch extends Model
     }
 
     /**
-     * Play time each of `$squadSize` players gets when the field is shared equally.
+     * Play time each of `$squadSize` players gets when the field is shared equally, in whole minutes so a badge turns green on the minute it shows.
      */
     public function fairShareSeconds(int $squadSize): ?int
     {
@@ -106,7 +106,7 @@ class TeamMatch extends Model
             return null;
         }
 
-        return intdiv($minutes * 60 * min($onField, $squadSize), $squadSize);
+        return intdiv($minutes * min($onField, $squadSize), $squadSize) * 60;
     }
 
     public function fairBenchSeconds(int $squadSize): ?int

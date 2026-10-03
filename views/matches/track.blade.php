@@ -2,18 +2,9 @@
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
 @php
-    $canTrack = Gate::allows('kopling-sports-management::track-matches');
-    $state = $timeline->state();
     $canMove = $state === MatchState::Planned ? Gate::allows('kopling-sports-management::manage-matches') : $canTrack;
-    $score = $timeline->score();
-    $running = $timeline->runningPeriod();
-    $played = $timeline->playedSeconds();
-    $onField = $timeline->onField();
-    $bench = $members->keys()->diff(array_keys($onField));
     $ticking = $running?->type === PeriodType::Play;
     $editable = $canMove;
-    $clock = fn (int $seconds) => intdiv($seconds, 60).':'.sprintf('%02d', $seconds % 60);
-    $minute = fn (int $seconds) => intdiv($seconds, 60)."'";
     $playedRange = $state === MatchState::Planned ? null : $members->keys()->map(fn ($id) => $played[$id] ?? 0);
     $fairShare = $state === MatchState::Planned ? null : $match->fairShareSeconds($members->count());
     $fairBench = $state === MatchState::Planned ? null : ($match->fairBenchSeconds($members->count()) ?: null);
@@ -34,13 +25,15 @@
 
         return sprintf('--badge-color: color-mix(in oklab, var(--color-%s) %d%%, var(--color-base-100)); --badge-fg: %s', $color, round($strength * 100), $fg);
     };
-    $name = fn (?string $memberId) => $memberId ? ($members->get($memberId)?->person->name ?? '?') : __('kopling-sports-management::messages.scorer_unknown');
 @endphp
 
 @section('content')
     {{-- Every action redirects back here; replace instead of push so Back leaves the match screen. --}}
     <div hx-replace-url:inherited="true" class="max-w-3xl flex flex-col gap-3">
         <div class="tabs tabs-box tabs-sm">
+            <a href="{{ route('kopling-sports-management::sports-management/matches.show', [$team, $match]) }}" class="btn btn-ghost btn-sm me-auto">
+                {{ __('kopling-sports-management::messages.back_to_match') }}
+            </a>
             <input type="radio" name="sm-tab" value="field" class="tab" aria-label="{{ __('kopling-sports-management::messages.field_tab') }}" checked>
             <div class="tab-content pt-3">
                 <div class="flex flex-col gap-3">

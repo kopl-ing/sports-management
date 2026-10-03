@@ -26,7 +26,9 @@
                 <ul class="list">
                     @foreach ($matches as $match)
                         <li>
-                            <a href="{{ route('kopling-sports-management::sports-management/matches.show', [$team, $match]) }}"
+                            <a href="{{ \Kopling\SportsManagement\MatchState::fromPeriods($match->periods) === \Kopling\SportsManagement\MatchState::Ended
+                                   ? route('kopling-sports-management::sports-management/matches.report', [$team, $match])
+                                   : route('kopling-sports-management::sports-management/matches.show', [$team, $match]) }}"
                                class="list-row flex items-center justify-between gap-2 hover:bg-base-200">
                                 <span>
                                     <span class="font-semibold">{{ $match->opponent_name }}</span>

@@ -24,9 +24,20 @@
                     {{ __('kopling-sports-management::messages.back_to_team', ['team' => $team->name]) }}
                 </a>
                 <div class="flex shrink-0 gap-2">
-                    <a href="{{ route('kopling-sports-management::sports-management/matches.track', [$team, $match]) }}" class="btn btn-primary">
-                        {{ Gate::allows('kopling-sports-management::track-matches') ? __('kopling-sports-management::messages.track_match') : __('kopling-sports-management::messages.view_tracking') }}
-                    </a>
+                    @if ($timeline->state() === \Kopling\SportsManagement\MatchState::Ended)
+                        <a href="{{ route('kopling-sports-management::sports-management/matches.report', [$team, $match]) }}" class="btn btn-primary">
+                            {{ __('kopling-sports-management::messages.view_tracking') }}
+                        </a>
+                        @can('kopling-sports-management::track-matches')
+                            <a href="{{ route('kopling-sports-management::sports-management/matches.track', [$team, $match]) }}" class="btn">
+                                {{ __('kopling-sports-management::messages.track_match') }}
+                            </a>
+                        @endcan
+                    @else
+                        <a href="{{ route('kopling-sports-management::sports-management/matches.track', [$team, $match]) }}" class="btn btn-primary">
+                            {{ Gate::allows('kopling-sports-management::track-matches') ? __('kopling-sports-management::messages.track_match') : __('kopling-sports-management::messages.view_tracking') }}
+                        </a>
+                    @endif
                     @if ($canManage)
                         <x-k::modal :label="__('kopling-sports-management::messages.edit_match')" id="modal-match-edit">
                             <x-slot:trigger class="btn">{{ __('kopling-sports-management::messages.edit_match') }}</x-slot:trigger>

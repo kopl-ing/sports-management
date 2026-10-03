@@ -3,13 +3,22 @@
 @use('Kopling\SportsManagement\PeriodType')
 @use('Kopling\SportsManagement\Position')
 @use('Kopling\SportsManagement\SubstitutionDirection')
+@php
+    $bench = $members->keys()->diff(array_keys($onField));
+    $clock = fn (int $seconds) => intdiv($seconds, 60).':'.sprintf('%02d', $seconds % 60);
+    $minute = fn (int $seconds) => intdiv($seconds, 60)."'";
+    $name = fn (?string $memberId) => $memberId ? ($members->get($memberId)?->person->name ?? '?') : __('kopling-sports-management::messages.scorer_unknown');
+    $score = $timeline->score();
+@endphp
 <div class="flex flex-col gap-2">
-    <a href="{{ route('kopling-sports-management::sports-management/matches.show', [$team, $match]) }}" class="link link-hover text-sm opacity-60">
-        {{ __('kopling-sports-management::messages.back_to_match') }}
-    </a>
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold">{{ $team->name }} &ndash; {{ $match->opponent_name }}</h1>
+            <h1 class="text-2xl font-bold">
+                {{ $team->name }} &ndash; {{ $match->opponent_name }}
+                @if ($state !== MatchState::Planned)
+                    <span class="tabular-nums ms-2">{{ $score['us'] }} &ndash; {{ $score['them'] }}</span>
+                @endif
+            </h1>
             <p class="text-sm opacity-60">{{ $match->scheduled_at->translatedFormat('l j F Y, H:i') }} &middot; {{ $match->home_away->label() }}</p>
         </div>
         <span class="badge {{ $state === MatchState::Live ? 'badge-error' : 'badge-ghost' }}">{{ $state->label() }}</span>

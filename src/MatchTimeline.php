@@ -27,11 +27,7 @@ class MatchTimeline
 
     public function state(): MatchState
     {
-        return match (true) {
-            $this->periods->isEmpty() => MatchState::Planned,
-            $this->runningPeriod() !== null => MatchState::Live,
-            default => MatchState::Ended,
-        };
+        return MatchState::fromPeriods($this->periods);
     }
 
     public function runningPeriod(): ?MatchPeriod

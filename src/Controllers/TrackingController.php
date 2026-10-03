@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,19 @@ class TrackingController
 
     public function show(Request $request, Team $team, TeamMatch $teamMatch): View
     {
+        return view('kopling-sports-management::matches.track', $this->matchData($request, $team, $teamMatch));
+    }
+
+    public function report(Request $request, Team $team, TeamMatch $teamMatch): View
+    {
+        return view('kopling-sports-management::matches.report', $this->matchData($request, $team, $teamMatch));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function matchData(Request $request, Team $team, TeamMatch $teamMatch): array
+    {
         $this->authorizeMatch($request, $team, $teamMatch);
 
         $team->load(['formatPreset', 'members.person']);
@@ -46,7 +60,7 @@ class TrackingController
         $absent = array_diff($teamMatch->availabilities->where('status', AvailabilityStatus::Absent)->pluck('team_member_id')->all(), $involved->all());
         $members = $team->members->reject(fn (TeamMember $member) => in_array($member->id, $absent, true));
 
-        return view('kopling-sports-management::matches.track', [
+        return [
             'team' => $team,
             'match' => $teamMatch,
             'timeline' => $timeline,
@@ -57,7 +71,12 @@ class TrackingController
                 ? $teamMatch->lineup->mapWithKeys(fn (MatchLineup $slot) => [$slot->team_member_id => $slot->zone])->all()
                 : array_map(fn (?Position $zone) => $zone ?? Position::Midfield, $timeline->onField()),
             'availability' => $teamMatch->availabilities->pluck('status', 'team_member_id'),
-        ]);
+            'canTrack' => Gate::allows('kopling-sports-management::track-matches'),
+            'state' => $timeline->state(),
+            'running' => $timeline->runningPeriod(),
+            'played' => $timeline->playedSeconds(),
+            'onField' => $timeline->onField(),
+        ];
     }
 
     /**
@@ -376,6 +395,8 @@ class TrackingController
 
     private function backToTracking(Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        return redirect()->route('kopling-sports-management::sports-management/matches.track', [$team, $teamMatch]);
+        $report = route('kopling-sports-management::sports-management/matches.report', [$team, $teamMatch]);
+
+        return redirect()->to(url()->previous() === $report ? $report : route('kopling-sports-management::sports-management/matches.track', [$team, $teamMatch]));
     }
 }

@@ -14,6 +14,7 @@ Route::get('/', [TeamsController::class, 'index'])->name('teams.index');
 Route::get('/{team}', [TeamsController::class, 'show'])->name('teams.show');
 Route::get('/{team}/matches/{teamMatch}', [MatchesController::class, 'show'])->name('matches.show');
 Route::get('/{team}/matches/{teamMatch}/track', [TrackingController::class, 'show'])->name('matches.track');
+Route::get('/{team}/matches/{teamMatch}/report', [TrackingController::class, 'report'])->name('matches.report');
 
 Route::post('/invitations/{invitation}/accept', [StaffController::class, 'accept'])->name('invitations.accept');
 Route::post('/invitations/{invitation}/decline', [StaffController::class, 'decline'])->name('invitations.decline');
