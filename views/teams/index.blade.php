@@ -15,7 +15,7 @@
                     <x-k::form.input :data="['name' => 'club', 'label' => __('kopling-sports-management::messages.club'), 'value' => old('club')]" />
                     <x-k::form.input :data="['name' => 'season', 'label' => __('kopling-sports-management::messages.season'), 'value' => old('season', \Kopling\SportsManagement\Team::currentSeason()), 'placeholder' => \Kopling\SportsManagement\Team::currentSeason(), 'required' => true]" />
                     @include('kopling-sports-management::teams.sport-fields', [
-                        'sport' => \Kopling\SportsManagement\Sport::tryFrom((string) old('sport')) ?? \Kopling\SportsManagement\Sport::Football,
+                        'sport' => \Kopling\SportsManagement\Sport::tryFrom((string) old('sport')) ?? \Kopling\SportsManagement\Sport::preferred(),
                         'presetId' => (string) old('format_preset_id'),
                         'sportEditable' => true,
                     ])

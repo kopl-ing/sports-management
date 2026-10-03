@@ -77,10 +77,10 @@
                             <span class="w-10 text-sm opacity-60 tabular-nums">{{ $minute($timeline->matchSecond($period, $event->offset_seconds)) }}</span>
                             @if ($isGoal)
                                 @if ($event->opponent)
-                                    <span class="badge badge-sm badge-error">{{ count($pointValues) > 1 ? '+'.$event->points : __('kopling-sports-management::messages.goal') }}</span>
+                                    <span class="badge badge-sm badge-error">{{ count($pointValues) > 1 ? '+'.$event->points : $team->sport->trans('goal') }}</span>
                                     {{ $match->opponent_name }}
                                 @else
-                                    <span class="badge badge-sm badge-success">{{ count($pointValues) > 1 ? '+'.$event->points : __('kopling-sports-management::messages.goal') }}</span>
+                                    <span class="badge badge-sm badge-success">{{ count($pointValues) > 1 ? '+'.$event->points : $team->sport->trans('goal') }}</span>
                                     {{ $event->own_goal ? __('kopling-sports-management::messages.own_goal_by', ['opponent' => $match->opponent_name]) : $name($event->scorer_team_member_id) }}
                                     @if ($event->assist_team_member_id)
                                         <span class="text-sm opacity-60">({{ __('kopling-sports-management::messages.assist') }}: {{ $name($event->assist_team_member_id) }})</span>
@@ -119,7 +119,7 @@
     </section>
 
     <section class="flex flex-col gap-3">
-        <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.scorers') }}</h2>
+        <h2 class="text-lg font-semibold">{{ $team->sport->trans('scorers') }}</h2>
         <ul class="flex flex-col gap-1">
             @forelse ($timeline->contributions() as $memberId => $tally)
                 <li class="flex items-center gap-2 bg-base-100 border border-base-300 rounded-box px-3 py-1.5">
@@ -136,7 +136,7 @@
                     </span>
                 </li>
             @empty
-                <li class="text-sm opacity-60">{{ __('kopling-sports-management::messages.no_scorers') }}</li>
+                <li class="text-sm opacity-60">{{ $team->sport->trans('no_scorers') }}</li>
             @endforelse
         </ul>
 
@@ -145,7 +145,7 @@
             @foreach ($members->sortByDesc(fn ($member) => $played[$member->id] ?? 0) as $member)
                 <li class="flex items-center gap-2 bg-base-100 border border-base-300 rounded-box px-3 py-1.5">
                     <span class="status {{ array_key_exists($member->id, $onField) ? 'status-success' : 'status-neutral' }}"
-                          aria-label="{{ array_key_exists($member->id, $onField) ? __('kopling-sports-management::messages.on_field') : __('kopling-sports-management::messages.bench') }}"></span>
+                          aria-label="{{ array_key_exists($member->id, $onField) ? $team->sport->trans('on_field') : __('kopling-sports-management::messages.bench') }}"></span>
                     {{ $member->person->name }}
                     <span class="ms-auto font-mono tabular-nums text-sm">{{ $clock($played[$member->id] ?? 0) }}</span>
                 </li>
@@ -174,25 +174,30 @@
                 <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}" hx-boost="true" class="flex flex-col gap-3">
                     @csrf
                     <div class="flex flex-col gap-3">
-                        <h3 class="font-semibold">{{ __('kopling-sports-management::messages.goal') }}</h3>
-                        @include('kopling-sports-management::matches.tracking.when')
-                        <select name="scorer_team_member_id" class="select select-sm" aria-label="{{ __('kopling-sports-management::messages.scorer') }}">
-                            <option value="">{{ __('kopling-sports-management::messages.scorer') }}: {{ __('kopling-sports-management::messages.scorer_unknown') }}</option>
+                        <h3 class="font-semibold">{{ $team->sport->trans('goal') }}</h3>
+                        <div class="flex flex-wrap gap-2">
+                            @include('kopling-sports-management::matches.tracking.when')
+                            @include('kopling-sports-management::matches.tracking.points')
+                        </div>
+                        <select name="scorer_team_member_id" class="select select-sm" aria-label="{{ $team->sport->trans('scorer') }}">
+                            <option value="">{{ $team->sport->trans('scorer') }}: {{ __('kopling-sports-management::messages.scorer_unknown') }}</option>
                             @foreach ($members->sortByDesc(fn ($member) => array_key_exists($member->id, $onField)) as $member)
                                 <option value="{{ $member->id }}">{{ $member->person->name }}</option>
                             @endforeach
                         </select>
-                        <label class="label text-sm">
-                            <input type="checkbox" name="own_goal" value="1" class="checkbox checkbox-sm">
-                            {{ __('kopling-sports-management::messages.own_goal_by', ['opponent' => $match->opponent_name]) }}
-                        </label>
+                        @if ($pointValues === [1])
+                            <label class="label text-sm">
+                                <input type="checkbox" name="own_goal" value="1" class="checkbox checkbox-sm">
+                                {{ __('kopling-sports-management::messages.own_goal_by', ['opponent' => $match->opponent_name]) }}
+                            </label>
+                        @endif
                         <select name="assist_team_member_id" class="select select-sm" aria-label="{{ __('kopling-sports-management::messages.assist') }}">
                             <option value="">{{ __('kopling-sports-management::messages.no_assist') }}</option>
                             @foreach ($members->sortByDesc(fn ($member) => array_key_exists($member->id, $onField)) as $member)
                                 <option value="{{ $member->id }}">{{ $member->person->name }}</option>
                             @endforeach
                         </select>
-                        <button type="submit" class="btn btn-success btn-sm self-start">{{ __('kopling-sports-management::messages.goal_for_us') }}</button>
+                        <button type="submit" class="btn btn-success btn-sm self-start">{{ $team->sport->trans('goal_for_us') }}</button>
                     </div>
                 </form>
 
@@ -201,7 +206,8 @@
                     <input type="hidden" name="opponent" value="1">
                     <div class="flex flex-row flex-wrap items-center gap-3">
                         @include('kopling-sports-management::matches.tracking.when')
-                        <button type="submit" class="btn btn-error btn-sm btn-outline">{{ __('kopling-sports-management::messages.goal_opponent', ['opponent' => $match->opponent_name]) }}</button>
+                        @include('kopling-sports-management::matches.tracking.points')
+                        <button type="submit" class="btn btn-error btn-sm btn-outline">{{ $team->sport->trans('goal_opponent', ['opponent' => $match->opponent_name]) }}</button>
                     </div>
                 </form>
                 <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.substitutions.store', [$team, $match]) }}" hx-boost="true" class="flex flex-col gap-3">

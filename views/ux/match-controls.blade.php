@@ -26,7 +26,7 @@
                     <input type="hidden" name="opponent" value="1">
                     <input type="hidden" name="points" value="{{ $points }}">
                     <button type="submit" class="btn btn-xs btn-outline btn-error"
-                            aria-label="{{ __('kopling-sports-management::messages.goal_opponent', ['opponent' => $match->opponent_name]) }}">+{{ $points }}</button>
+                            aria-label="{{ $team->sport->trans('goal_opponent', ['opponent' => $match->opponent_name]) }}">+{{ $points }}</button>
                 </form>
             @endforeach
         @endif

@@ -34,7 +34,7 @@
             <a href="{{ route('kopling-sports-management::sports-management/matches.show', [$team, $match]) }}" class="btn btn-ghost btn-sm me-auto">
                 {{ __('kopling-sports-management::messages.back_to_match') }}
             </a>
-            <input type="radio" name="sm-tab" value="field" class="tab" aria-label="{{ __('kopling-sports-management::messages.field_tab') }}" checked>
+            <input type="radio" name="sm-tab" value="field" class="tab" aria-label="{{ $team->sport->trans('field_tab') }}" checked>
             <div class="tab-content pt-3">
                 <div class="flex flex-col gap-3">
                     @if ($errors->any())

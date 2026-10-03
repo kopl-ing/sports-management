@@ -14,6 +14,19 @@ return [
     'club' => 'Club',
     'season' => 'Seizoen',
     'sport' => 'Sport',
+    'by_sport' => [
+        'basketball' => [
+            'positions' => ['F' => 'Forwards'],
+            'goal' => 'Score',
+            'goal_for_us' => 'Score voor ons',
+            'goal_opponent' => 'Score :opponent',
+            'scorer' => 'Scorer',
+            'tap_scorer' => 'Tik op de scorer',
+            'scorers' => 'Punten en assists',
+            'no_scorers' => 'Nog geen punten of assists.',
+            'recorded_goal' => 'Score vastgelegd.',
+        ],
+    ],
     'sport_locked' => 'Vast zodra het team wedstrijden heeft.',
     'sports' => [
         'football' => 'Voetbal',
@@ -61,9 +74,6 @@ return [
         'A' => 'Hoek & cirkel',
         'G' => 'Guards',
         'C' => 'Center',
-    ],
-    'positions_basketball' => [
-        'F' => 'Forwards',
     ],
     'guest' => 'Gastspeler',
     'guest_short' => 'G',
@@ -215,6 +225,7 @@ return [
     'time_played' => 'Speeltijd',
     'scorers' => 'Doelpunten en assists',
     'no_scorers' => 'Nog geen doelpunten of assists.',
+    'points' => 'Punten',
     'points_count' => ':count punt|:count punten',
     'points_for_us' => ':count punt voor ons|:count punten voor ons',
     'goals_count' => ':count doelpunt|:count doelpunten',

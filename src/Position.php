@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Kopling\SportsManagement;
 
-use Illuminate\Support\Facades\Lang;
-
 /**
  * Field rows of every sport; a `SportConfig` picks which it uses.
  */
@@ -22,11 +20,7 @@ enum Position: string
 
     public function label(?Sport $sport = null): string
     {
-        $key = 'kopling-sports-management::messages.positions.'.$this->value;
-
-        return $sport !== null && Lang::has("kopling-sports-management::messages.positions_{$sport->value}.{$this->value}")
-            ? __("kopling-sports-management::messages.positions_{$sport->value}.{$this->value}")
-            : __($key);
+        return $sport?->trans('positions.'.$this->value) ?? __('kopling-sports-management::messages.positions.'.$this->value);
     }
 
     /** @return array<string, string> */

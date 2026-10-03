@@ -23,11 +23,11 @@
     @endif
 
     <div class="relative flex items-center justify-between text-sm">
-        <span class="opacity-60">{{ $state === MatchState::Planned ? __('kopling-sports-management::messages.lineup') : __('kopling-sports-management::messages.on_field') }}</span>
+        <span class="opacity-60">{{ $state === MatchState::Planned ? __('kopling-sports-management::messages.lineup') : $team->sport->trans('on_field') }}</span>
         <span class="tabular-nums opacity-60">{{ count($placement) }}{{ $maxOnField ? ' / '.$maxOnField : '' }}</span>
         @if ($canTrack && $state === MatchState::Live)
             <div class="hidden group-data-[sm-goal]:flex absolute inset-x-0 bottom-0 z-10 alert alert-success py-2 shadow-md">
-                <span class="hidden group-data-[sm-goal=scorer]:inline">{{ __('kopling-sports-management::messages.tap_scorer') }}</span>
+                <span class="hidden group-data-[sm-goal=scorer]:inline">{{ $team->sport->trans('tap_scorer') }}</span>
                 <span class="hidden group-data-[sm-goal=assist]:inline">{{ __('kopling-sports-management::messages.tap_assist') }}</span>
                 <div class="ms-auto flex gap-1">
                     @if ($pointValues === [1])
@@ -111,7 +111,7 @@
             @foreach ($pointValues as $points)
                 <button type="button" data-sm-goal-start data-sm-points="{{ $points }}" class="btn btn-success btn-lg flex-1 group-data-[sm-goal]:btn-disabled group-data-[sm-sanction]:btn-disabled"
                         @if (count($pointValues) > 1) aria-label="{{ trans_choice('kopling-sports-management::messages.points_for_us', $points) }}" @endif>
-                    {{ count($pointValues) > 1 ? '+'.$points : __('kopling-sports-management::messages.goal_for_us') }}
+                    {{ count($pointValues) > 1 ? '+'.$points : $team->sport->trans('goal_for_us') }}
                 </button>
             @endforeach
             @if ($sanctionKinds !== [])
