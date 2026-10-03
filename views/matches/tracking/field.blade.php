@@ -1,4 +1,5 @@
 @use('Kopling\SportsManagement\MatchState')
+@use('Kopling\SportsManagement\FieldSlots')
 @use('Kopling\SportsManagement\Position')
 @php
     $benchMembers = $members->reject(fn ($member) => array_key_exists($member->id, $placement));
@@ -18,6 +19,7 @@
             <input type="hidden" name="team_member_id">
             <input type="hidden" name="zone">
             <input type="hidden" name="replace_team_member_id">
+            <input type="hidden" name="before_team_member_id">
         </form>
     @endif
 
@@ -41,8 +43,8 @@
             <div data-sm-zone="{{ $zone->value }}"
                  class="relative flex-1 flex flex-wrap items-center justify-center gap-5 p-2 border-b border-dashed border-base-300 last:border-b-0 data-[sm-over]:bg-primary/10 data-[sm-refused]:bg-error/15">
                 <span class="absolute start-3 top-2 text-xs font-semibold opacity-40" title="{{ $zone->label() }}">{{ $zone->value }}</span>
-                @foreach ($members->filter(fn ($member) => ($placement[$member->id] ?? false) === $zone) as $member)
-                    @include('kopling-sports-management::matches.tracking.player')
+                @foreach (FieldSlots::order($members->filter(fn ($member) => ($placement[$member->id] ?? false) === $zone)->keys()->all(), $slots) as $memberId)
+                    @include('kopling-sports-management::matches.tracking.player', ['member' => $members[$memberId]])
                 @endforeach
             </div>
         @endforeach

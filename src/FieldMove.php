@@ -19,6 +19,7 @@ class FieldMove
             'team_member_id' => ['required', 'uuid', $member, Rule::notIn($match->absentMemberIds())],
             'zone' => ['nullable', Rule::enum(Position::class)],
             'replace_team_member_id' => ['nullable', 'uuid', $member],
+            'before_team_member_id' => ['nullable', 'uuid', 'different:team_member_id', $member],
         ];
     }
 

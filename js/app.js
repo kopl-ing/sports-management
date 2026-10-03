@@ -58,6 +58,24 @@ function exceedsLimits(field, player, zone) {
     return (from === null && onField + 1 > max) || (zone === 'K' && from !== 'K' && keepers >= 1);
 }
 
+function playerBefore(zone, player, x, y) {
+    return [...zone.querySelectorAll('[data-sm-player]')]
+        .filter((other) => other !== player)
+        .find((other) => {
+            const { top, bottom, left, width } = other.getBoundingClientRect();
+            return y < top || (y <= bottom && x < left + width / 2);
+        }) ?? null;
+}
+
+function nextPlayer(player) {
+    let next = player.nextElementSibling;
+    while (next && !next.matches('[data-sm-player]')) {
+        next = next.nextElementSibling;
+    }
+
+    return next;
+}
+
 function swapNodes(a, b) {
     const marker = document.createComment('');
     a.replaceWith(marker);
@@ -65,7 +83,7 @@ function swapNodes(a, b) {
     marker.replaceWith(b);
 }
 
-function move(player, target) {
+function move(player, target, x, y) {
     const field = editableField(player);
     const form = field?.querySelector('form[data-sm-move]');
     if (!form || !target || target === player) {
@@ -74,6 +92,7 @@ function move(player, target) {
 
     let memberId = player.dataset.smPlayer;
     let replaceId = '';
+    let beforeId = '';
     let zone = '';
 
     if (target.matches('[data-sm-player]')) {
@@ -88,14 +107,16 @@ function move(player, target) {
         flag(target, 'data-sm-pending', true);
     } else if (target.matches('[data-sm-zone]')) {
         zone = target.dataset.smZone;
-        if (zone === zoneOf(player)) {
+        const before = x === undefined ? null : playerBefore(target, player, x, y);
+        if (zone === zoneOf(player) && before === nextPlayer(player)) {
             return;
         }
         if (exceedsLimits(field, player, zone)) {
             refuse(target);
             return;
         }
-        target.append(player);
+        target.insertBefore(player, before);
+        beforeId = before?.dataset.smPlayer ?? '';
     } else {
         if (onBench(player)) {
             return;
@@ -107,6 +128,7 @@ function move(player, target) {
     form.elements.team_member_id.value = memberId;
     form.elements.zone.value = zone;
     form.elements.replace_team_member_id.value = replaceId;
+    form.elements.before_team_member_id.value = beforeId;
     form.requestSubmit();
 }
 
@@ -185,7 +207,7 @@ document.addEventListener('pointerup', (event) => {
     } else if (ghost) {
         const target = targetAt(event.clientX, event.clientY, field);
         endDrag();
-        move(player, target);
+        move(player, target, event.clientX, event.clientY);
     } else if (selected && selected !== player) {
         const from = selected;
         select(null);
@@ -228,7 +250,7 @@ document.addEventListener('click', (event) => {
     select(null);
 
     if (target && editableField(target) === editableField(from)) {
-        move(from, target);
+        move(from, target, event.clientX, event.clientY);
     }
 });
 

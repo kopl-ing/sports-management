@@ -14,6 +14,7 @@ use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\ValidationException;
 use Kopling\SportsManagement\AvailabilityStatus;
 use Kopling\SportsManagement\FieldMove;
+use Kopling\SportsManagement\FieldSlots;
 use Kopling\SportsManagement\MatchGoal;
 use Kopling\SportsManagement\MatchLineup;
 use Kopling\SportsManagement\MatchPeriod;
@@ -50,7 +51,7 @@ class TrackingController
         $this->authorizeMatch($request, $team, $teamMatch);
 
         $team->load(['formatPreset', 'members.person']);
-        $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'periods', 'substitutions', 'goals']);
+        $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals']);
         $timeline = $teamMatch->timeline();
         $involved = $teamMatch->lineup->pluck('team_member_id')
             ->concat($teamMatch->substitutions->pluck('team_member_id'))
@@ -59,6 +60,9 @@ class TrackingController
             ->filter()->unique();
         $absent = array_diff($teamMatch->availabilities->where('status', AvailabilityStatus::Absent)->pluck('team_member_id')->all(), $involved->all());
         $members = $team->members->reject(fn (TeamMember $member) => in_array($member->id, $absent, true));
+        $placement = $timeline->state() === MatchState::Planned
+            ? $teamMatch->lineup->mapWithKeys(fn (MatchLineup $slot) => [$slot->team_member_id => $slot->zone])->all()
+            : array_map(fn (?Position $zone) => $zone ?? Position::Midfield, $timeline->onField());
 
         return [
             'team' => $team,
@@ -67,9 +71,8 @@ class TrackingController
             'members' => TeamMember::sorted($members)->keyBy('id'),
             'maxOnField' => $teamMatch->effectiveFormatPreset()?->players_on_field,
             'initials' => TeamMember::shortInitials($members),
-            'placement' => $timeline->state() === MatchState::Planned
-                ? $teamMatch->lineup->mapWithKeys(fn (MatchLineup $slot) => [$slot->team_member_id => $slot->zone])->all()
-                : array_map(fn (?Position $zone) => $zone ?? Position::Midfield, $timeline->onField()),
+            'placement' => $placement,
+            'slots' => FieldSlots::current($placement, $teamMatch->slotRows()),
             'availability' => $teamMatch->availabilities->pluck('status', 'team_member_id'),
             'canTrack' => Gate::allows('kopling-sports-management::track-matches'),
             'state' => $timeline->state(),
@@ -234,15 +237,21 @@ class TrackingController
             throw ValidationException::withMessages(['zone' => $error]);
         }
 
-        $created = DB::transaction(fn () => collect($changes)->map(fn (?Position $zone, string $memberId) => $teamMatch->substitutions()->create([
-            'period_id' => $period->id,
-            'team_member_id' => $memberId,
-            'direction' => $zone === null ? SubstitutionDirection::Off : SubstitutionDirection::On,
-            'zone' => $zone,
-            'offset_seconds' => $offset,
-        ])->id)->values()->all());
+        $created = DB::transaction(function () use ($teamMatch, $timeline, $changes, $period, $offset, $data) {
+            $teamMatch->rememberSlots(array_map(fn (?Position $zone) => $zone ?? Position::Midfield, $timeline->onField()), $data);
 
-        $this->rememberUndo($teamMatch, substitutions: $created);
+            return collect($changes)->map(fn (?Position $zone, string $memberId) => $teamMatch->substitutions()->create([
+                'period_id' => $period->id,
+                'team_member_id' => $memberId,
+                'direction' => $zone === null ? SubstitutionDirection::Off : SubstitutionDirection::On,
+                'zone' => $zone,
+                'offset_seconds' => $offset,
+            ])->id)->values()->all();
+        });
+
+        if ($created !== []) {
+            $this->rememberUndo($teamMatch, substitutions: $created);
+        }
 
         return $this->backToTracking($team, $teamMatch);
     }

@@ -110,7 +110,8 @@ class MatchesController
             throw ValidationException::withMessages(['zone' => $error]);
         }
 
-        DB::transaction(function () use ($teamMatch, $changes) {
+        DB::transaction(function () use ($teamMatch, $changes, $placement, $data) {
+            $teamMatch->rememberSlots($placement, $data);
             foreach ($changes as $memberId => $zone) {
                 $zone === null
                     ? $teamMatch->lineup()->where('team_member_id', $memberId)->delete()

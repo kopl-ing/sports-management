@@ -54,6 +54,40 @@ class TeamMatch extends Model
         return $this->hasMany(MatchLineup::class, 'match_id');
     }
 
+    public function slots(): HasMany
+    {
+        return $this->hasMany(MatchSlot::class, 'match_id');
+    }
+
+    /**
+     * @return array<string, array{0: Position, 1: float}> stored zone and slot per team member id
+     */
+    public function slotRows(): array
+    {
+        return $this->slots->mapWithKeys(fn (MatchSlot $slot) => [$slot->team_member_id => [$slot->zone, $slot->slot]])->all();
+    }
+
+    /**
+     * @param array<string, Position|null> $placement zone per team member id, before the move
+     * @param array{team_member_id: string, zone?: string|null, before_team_member_id?: string|null, replace_team_member_id?: string|null} $data
+     */
+    public function rememberSlots(array $placement, array $data): void
+    {
+        $writes = FieldSlots::writes(
+            $placement,
+            TeamMember::sorted($this->team->members()->with('person')->get())->pluck('id')->all(),
+            $this->slotRows(),
+            $data['team_member_id'],
+            isset($data['zone']) ? Position::from($data['zone']) : null,
+            $data['before_team_member_id'] ?? null,
+            $data['replace_team_member_id'] ?? null,
+        );
+
+        foreach ($writes as $memberId => [$zone, $slot]) {
+            $this->slots()->updateOrCreate(['team_member_id' => $memberId], ['zone' => $zone, 'slot' => $slot]);
+        }
+    }
+
     public function periods(): HasMany
     {
         return $this->hasMany(MatchPeriod::class, 'match_id')->orderBy('sequence');
