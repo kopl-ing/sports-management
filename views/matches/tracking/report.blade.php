@@ -78,7 +78,7 @@
                                     {{ $match->opponent_name }}
                                 @else
                                     <span class="badge badge-sm badge-success">{{ __('kopling-sports-management::messages.goal') }}</span>
-                                    {{ $name($event->scorer_team_member_id) }}
+                                    {{ $event->own_goal ? __('kopling-sports-management::messages.own_goal_by', ['opponent' => $match->opponent_name]) : $name($event->scorer_team_member_id) }}
                                     @if ($event->assist_team_member_id)
                                         <span class="text-sm opacity-60">({{ __('kopling-sports-management::messages.assist') }}: {{ $name($event->assist_team_member_id) }})</span>
                                     @endif
@@ -171,6 +171,10 @@
                                 <option value="{{ $member->id }}">{{ $member->person->name }}</option>
                             @endforeach
                         </select>
+                        <label class="label text-sm">
+                            <input type="checkbox" name="own_goal" value="1" class="checkbox checkbox-sm">
+                            {{ __('kopling-sports-management::messages.own_goal_by', ['opponent' => $match->opponent_name]) }}
+                        </label>
                         <select name="assist_team_member_id" class="select select-sm" aria-label="{{ __('kopling-sports-management::messages.assist') }}">
                             <option value="">{{ __('kopling-sports-management::messages.no_assist') }}</option>
                             @foreach ($members->sortByDesc(fn ($member) => array_key_exists($member->id, $onField)) as $member)

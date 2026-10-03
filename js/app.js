@@ -138,10 +138,11 @@ function endGoal(field) {
     delete field?.dataset.smGoal;
 }
 
-function submitGoal(field, scorerId, assistId) {
+function submitGoal(field, scorerId, assistId, ownGoal = false) {
     const form = field.querySelector('form[data-sm-goal-form]');
-    form.elements.scorer_team_member_id.value = scorerId;
+    form.elements.scorer_team_member_id.value = scorerId ?? '';
     form.elements.assist_team_member_id.value = assistId ?? '';
+    form.elements.own_goal.value = ownGoal ? '1' : '';
     endGoal(field);
     form.requestSubmit();
 }
@@ -230,6 +231,10 @@ document.addEventListener('click', (event) => {
     if (event.target.closest('[data-sm-goal-start]')) {
         select(null);
         field.dataset.smGoal = 'scorer';
+        return;
+    }
+    if (event.target.closest('[data-sm-goal-own]')) {
+        submitGoal(field, null, null, true);
         return;
     }
     if (event.target.closest('[data-sm-goal-skip]')) {

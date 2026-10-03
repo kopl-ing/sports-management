@@ -18,6 +18,7 @@ class MatchGoal extends Model
         'match_id',
         'period_id',
         'opponent',
+        'own_goal',
         'scorer_team_member_id',
         'assist_team_member_id',
         'offset_seconds',
@@ -27,6 +28,7 @@ class MatchGoal extends Model
     {
         return [
             'opponent' => 'boolean',
+            'own_goal' => 'boolean',
             'offset_seconds' => 'integer',
         ];
     }

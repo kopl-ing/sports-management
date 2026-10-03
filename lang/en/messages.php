@@ -162,6 +162,8 @@ return [
     'recorded_change' => 'Change recorded.',
     'tap_scorer' => 'Tap the scorer',
     'tap_assist' => 'Tap the assist',
+    'own_goal' => 'Own goal',
+    'own_goal_by' => 'Own goal by :opponent',
     'skip' => 'Skip',
     'cancel' => 'Cancel',
     'field_tab' => 'Field',

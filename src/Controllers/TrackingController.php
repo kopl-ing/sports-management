@@ -304,8 +304,9 @@ class TrackingController
         $data = $request->validate([
             ...$this->eventRules(),
             'opponent' => ['sometimes', 'boolean'],
-            'scorer_team_member_id' => ['nullable', 'prohibited_if:opponent,1', $this->memberOf($team)],
-            'assist_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'different:scorer_team_member_id', $this->memberOf($team)],
+            'own_goal' => ['sometimes', 'exclude_if:opponent,1', 'boolean'],
+            'scorer_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', $this->memberOf($team)],
+            'assist_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', 'different:scorer_team_member_id', $this->memberOf($team)],
         ]);
 
         [$period, $offset] = $this->moment($teamMatch, $data['minute'] ?? null);
@@ -313,6 +314,7 @@ class TrackingController
         $goal = $teamMatch->goals()->create([
             'period_id' => $period->id,
             'opponent' => $data['opponent'] ?? false,
+            'own_goal' => $data['own_goal'] ?? false,
             'scorer_team_member_id' => $data['scorer_team_member_id'] ?? null,
             'assist_team_member_id' => $data['assist_team_member_id'] ?? null,
             'offset_seconds' => $offset,

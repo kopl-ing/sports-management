@@ -162,6 +162,8 @@ return [
     'recorded_change' => 'Wijziging vastgelegd.',
     'tap_scorer' => 'Tik op de doelpuntmaker',
     'tap_assist' => 'Tik op de assist',
+    'own_goal' => 'Eigen doelpunt',
+    'own_goal_by' => 'Eigen doelpunt van :opponent',
     'skip' => 'Overslaan',
     'cancel' => 'Annuleren',
     'field_tab' => 'Veld',

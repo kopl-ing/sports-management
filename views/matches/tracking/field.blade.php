@@ -31,6 +31,7 @@
                 <span class="hidden group-data-[sm-goal=scorer]:inline">{{ __('kopling-sports-management::messages.tap_scorer') }}</span>
                 <span class="hidden group-data-[sm-goal=assist]:inline">{{ __('kopling-sports-management::messages.tap_assist') }}</span>
                 <div class="ms-auto flex gap-1">
+                    <button type="button" data-sm-goal-own class="btn btn-sm hidden group-data-[sm-goal=scorer]:inline-flex">{{ __('kopling-sports-management::messages.own_goal') }}</button>
                     <button type="button" data-sm-goal-skip class="btn btn-sm hidden group-data-[sm-goal=assist]:inline-flex">{{ __('kopling-sports-management::messages.skip') }}</button>
                     <button type="button" data-sm-goal-cancel class="btn btn-sm btn-ghost">{{ __('kopling-sports-management::messages.cancel') }}</button>
                 </div>
@@ -70,6 +71,7 @@
             @csrf
             <input type="hidden" name="scorer_team_member_id">
             <input type="hidden" name="assist_team_member_id">
+            <input type="hidden" name="own_goal">
         </form>
         <button type="button" data-sm-goal-start class="btn btn-success btn-lg w-full group-data-[sm-goal]:btn-disabled">
             {{ __('kopling-sports-management::messages.goal_for_us') }}
