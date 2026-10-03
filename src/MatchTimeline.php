@@ -128,6 +128,27 @@ class MatchTimeline
     }
 
     /**
+     * @return array<string, array{goals: int, assists: int}> keyed by team member id, most goals first
+     */
+    public function contributions(): array
+    {
+        $tally = [];
+
+        foreach ($this->goals->where('opponent', false) as $goal) {
+            foreach (['goals' => $goal->scorer_team_member_id, 'assists' => $goal->assist_team_member_id] as $kind => $memberId) {
+                if ($memberId !== null) {
+                    $tally[$memberId] ??= ['goals' => 0, 'assists' => 0];
+                    $tally[$memberId][$kind]++;
+                }
+            }
+        }
+
+        uasort($tally, fn (array $a, array $b) => [$b['goals'], $b['assists']] <=> [$a['goals'], $a['assists']]);
+
+        return $tally;
+    }
+
+    /**
      * Substitutions made during a break take effect from the start of the next play period.
      *
      * @return array<string, int> seconds played, keyed by team member id

@@ -101,7 +101,26 @@
     </section>
 
     <section class="flex flex-col gap-3">
-        <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.time_played') }}</h2>
+        <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.scorers') }}</h2>
+        <ul class="flex flex-col gap-1">
+            @forelse ($timeline->contributions() as $memberId => $tally)
+                <li class="flex items-center gap-2 bg-base-100 border border-base-300 rounded-box px-3 py-1.5">
+                    {{ $name($memberId) }}
+                    <span class="ms-auto flex gap-1">
+                        @if ($tally['goals'])
+                            <span class="badge badge-sm badge-success">{{ trans_choice('kopling-sports-management::messages.goals_count', $tally['goals']) }}</span>
+                        @endif
+                        @if ($tally['assists'])
+                            <span class="badge badge-sm badge-ghost">{{ trans_choice('kopling-sports-management::messages.assists_count', $tally['assists']) }}</span>
+                        @endif
+                    </span>
+                </li>
+            @empty
+                <li class="text-sm opacity-60">{{ __('kopling-sports-management::messages.no_scorers') }}</li>
+            @endforelse
+        </ul>
+
+        <h2 class="text-lg font-semibold mt-5">{{ __('kopling-sports-management::messages.time_played') }}</h2>
         <ul class="flex flex-col gap-1">
             @foreach ($members->sortByDesc(fn ($member) => $played[$member->id] ?? 0) as $member)
                 <li class="flex items-center gap-2 bg-base-100 border border-base-300 rounded-box px-3 py-1.5">

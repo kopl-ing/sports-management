@@ -108,4 +108,11 @@ class TeamMatch extends Model
 
         return intdiv($minutes * 60 * min($onField, $squadSize), $squadSize);
     }
+
+    public function fairBenchSeconds(int $squadSize): ?int
+    {
+        $fairShare = $this->fairShareSeconds($squadSize);
+
+        return $fairShare === null ? null : $this->effectivePlayMinutes() * 60 - $fairShare;
+    }
 }

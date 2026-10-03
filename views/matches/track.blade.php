@@ -16,6 +16,8 @@
     $minute = fn (int $seconds) => intdiv($seconds, 60)."'";
     $playedRange = $state === MatchState::Planned ? null : $members->keys()->map(fn ($id) => $played[$id] ?? 0);
     $fairShare = $state === MatchState::Planned ? null : $match->fairShareSeconds($members->count());
+    $fairBench = $state === MatchState::Planned ? null : ($match->fairBenchSeconds($members->count()) ?: null);
+    $matchSeconds = $timeline->matchSeconds();
     $fairShareStyle = '--badge-color: var(--color-success); --badge-fg: var(--color-success-content)';
     $playedTint = function (string $memberId) use ($playedRange, $played, $fairShare, $fairShareStyle): string {
         if ($fairShare !== null && ($played[$memberId] ?? 0) >= $fairShare) {

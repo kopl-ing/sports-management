@@ -16,11 +16,26 @@
                     'seconds' => $played[$member->id] ?? 0,
                     'minutesOnly' => true,
                     'ticking' => $ticking && array_key_exists($member->id, $onField),
-                    'class' => 'indicator-item badge badge-sm tabular-nums',
+                    'prefix' => array_key_exists($member->id, $onField) ? '' : __('kopling-sports-management::messages.played'),
+                    'class' => 'indicator-item indicator-center badge badge-sm tabular-nums',
                     'style' => $playedTint($member->id),
                     'limit' => $fairShare,
                     'limitStyle' => $fairShareStyle,
                 ])
+                @php($benched = $matchSeconds - ($played[$member->id] ?? 0))
+                @php($isOnField = array_key_exists($member->id, $onField))
+                @if ($fairBench && (! $isOnField || $benched >= 60))
+                    @include('kopling-sports-management::matches.tracking.clock', [
+                        'seconds' => $benched,
+                        'minutesOnly' => true,
+                        'ticking' => $ticking && ! $isOnField,
+                        'prefix' => $isOnField ? '' : __('kopling-sports-management::messages.benched'),
+                        'class' => 'indicator-item indicator-bottom indicator-center badge badge-sm tabular-nums',
+                        'style' => $benched >= $fairBench ? $fairShareStyle : '',
+                        'limit' => $fairBench,
+                        'limitStyle' => $fairShareStyle,
+                    ])
+                @endif
             @endif
             @if ($member->guest)
                 <span class="indicator-item indicator-start badge badge-xs badge-outline">{{ __('kopling-sports-management::messages.guest_short') }}</span>

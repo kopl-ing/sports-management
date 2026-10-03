@@ -50,8 +50,8 @@
 
     <div data-sm-bench class="relative card card-border bg-base-200 data-[sm-over]:bg-primary/10">
         @if ($fairShare !== null)
-            <span class="absolute start-3 top-2 text-xs font-semibold opacity-40 tabular-nums pointer-events-none"
-                  title="{{ __('kopling-sports-management::messages.fair_share_help') }}">{{ __('kopling-sports-management::messages.fair_share', ['minutes' => intdiv($fairShare, 60)]) }}</span>
+            <span class="px-3 pt-2 text-center text-xs font-semibold opacity-40 tabular-nums pointer-events-none"
+                  title="{{ __('kopling-sports-management::messages.target_help') }}">{{ __('kopling-sports-management::messages.target_play_time', ['minutes' => intdiv($fairShare, 60)]) }}@if ($fairBench), {{ __('kopling-sports-management::messages.target_bench_time', ['minutes' => intdiv($fairBench, 60)]) }}@endif</span>
         @endif
         <div data-sm-bench-list class="card-body flex-row flex-wrap items-center justify-center gap-5 p-3 min-h-24">
             @forelse ($benchMembers as $member)
