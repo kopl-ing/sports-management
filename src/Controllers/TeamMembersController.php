@@ -22,7 +22,7 @@ class TeamMembersController
             'name' => ['required', 'string', 'max:255'],
             'jersey_number' => ['nullable', 'string', 'max:16'],
             'positions' => ['sometimes', 'array'],
-            'positions.*' => [Rule::enum(Position::class)],
+            'positions.*' => [Rule::enum(Position::class)->only($team->sport->config()->zones())],
             'guest' => ['sometimes', 'boolean'],
         ]);
 
@@ -48,7 +48,7 @@ class TeamMembersController
             'name' => ['required', 'string', 'max:255'],
             'jersey_number' => ['nullable', 'string', 'max:16'],
             'positions' => ['sometimes', 'array'],
-            'positions.*' => [Rule::enum(Position::class)],
+            'positions.*' => [Rule::enum(Position::class)->only($team->sport->config()->zones())],
             'guest' => ['sometimes', 'boolean'],
         ]);
 

@@ -20,12 +20,15 @@
     <div class="flex items-center gap-2">
         <span class="text-xl font-bold tabular-nums">{{ $score['us'] }}&ndash;{{ $score['them'] }}</span>
         @if ($canTrack && $state === MatchState::Live)
-            <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}" hx-boost="true">
-                @csrf
-                <input type="hidden" name="opponent" value="1">
-                <button type="submit" class="btn btn-xs btn-outline btn-error"
-                        aria-label="{{ __('kopling-sports-management::messages.goal_opponent', ['opponent' => $match->opponent_name]) }}">+1</button>
-            </form>
+            @foreach ($pointValues as $points)
+                <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}" hx-boost="true">
+                    @csrf
+                    <input type="hidden" name="opponent" value="1">
+                    <input type="hidden" name="points" value="{{ $points }}">
+                    <button type="submit" class="btn btn-xs btn-outline btn-error"
+                            aria-label="{{ __('kopling-sports-management::messages.goal_opponent', ['opponent' => $match->opponent_name]) }}">+{{ $points }}</button>
+                </form>
+            @endforeach
         @endif
     </div>
 
@@ -35,8 +38,13 @@
                 <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.start', [$team, $match]) }}" hx-boost="true">
                     @csrf
                     @if ($running?->type === PeriodType::Play)
+                        @php($breakIn = $playPeriodSeconds === null ? null : $playPeriodSeconds - $timeline->length($running))
                         <input type="hidden" name="type" value="{{ PeriodType::Break->value }}">
-                        <button type="submit" class="btn btn-sm gap-1.5"
+                        <button type="submit" data-sm-break-due="{{ $breakIn !== null && $breakIn <= 0 ? 'now' : '' }}"
+                                class="btn btn-sm gap-1.5 data-[sm-break-due=now]:btn-warning data-[sm-break-due=now]:animate-pulse"
+                                @if ($breakIn !== null && $breakIn > 0)
+                                    x-data x-init="setTimeout(() => { $el.dataset.smBreakDue = 'now'; navigator.vibrate?.([300, 150, 300]) }, {{ $breakIn * 1000 }})"
+                                @endif
                                 aria-label="{{ __('kopling-sports-management::messages.break') }}" title="{{ __('kopling-sports-management::messages.break') }}">
                             <x-k::icon name="kopling-sports-management::pause" />
                             @include('kopling-sports-management::matches.tracking.clock', ['seconds' => $timeline->matchSeconds(), 'ticking' => true])

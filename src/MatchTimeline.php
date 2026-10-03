@@ -15,12 +15,15 @@ class MatchTimeline
      * @param Collection<int, MatchPeriod> $periods
      * @param Collection<int, MatchSubstitution> $substitutions
      * @param Collection<int, MatchGoal> $goals
+     * @param Collection<int, MatchSanction> $sanctions
      */
     public function __construct(
         private readonly Collection $periods,
         private readonly Collection $substitutions,
         private readonly Collection $goals,
         ?CarbonInterface $now = null,
+        private readonly ?int $breaks = null,
+        private readonly Collection $sanctions = new Collection(),
     ) {
         $this->now = $now ?? now();
     }
@@ -70,7 +73,13 @@ class MatchTimeline
             ->filter(fn (MatchPeriod $other) => $other->type === PeriodType::Play && $other->sequence <= $period->sequence)
             ->count();
 
-        return __('kopling-sports-management::messages.period_play', ['number' => $number]);
+        $key = match (true) {
+            $this->breaks === 1 && $number <= 2 => 'period_half',
+            $this->breaks === 3 && $number <= 4 => 'period_quarter',
+            default => 'period_play',
+        };
+
+        return __('kopling-sports-management::messages.'.$key, ['number' => $number]);
     }
 
     /**
@@ -118,13 +127,13 @@ class MatchTimeline
     public function score(): array
     {
         return [
-            'us' => $this->goals->where('opponent', false)->count(),
-            'them' => $this->goals->where('opponent', true)->count(),
+            'us' => $this->goals->where('opponent', false)->sum(fn (MatchGoal $goal) => $goal->points ?? 1),
+            'them' => $this->goals->where('opponent', true)->sum(fn (MatchGoal $goal) => $goal->points ?? 1),
         ];
     }
 
     /**
-     * @return array<string, array{goals: int, assists: int}> keyed by team member id, most goals first
+     * @return array<string, array{goals: int, assists: int, points: int}> keyed by team member id, most points first
      */
     public function contributions(): array
     {
@@ -133,13 +142,16 @@ class MatchTimeline
         foreach ($this->goals->where('opponent', false) as $goal) {
             foreach (['goals' => $goal->scorer_team_member_id, 'assists' => $goal->assist_team_member_id] as $kind => $memberId) {
                 if ($memberId !== null) {
-                    $tally[$memberId] ??= ['goals' => 0, 'assists' => 0];
+                    $tally[$memberId] ??= ['goals' => 0, 'assists' => 0, 'points' => 0];
                     $tally[$memberId][$kind]++;
+                    if ($kind === 'goals') {
+                        $tally[$memberId]['points'] += $goal->points ?? 1;
+                    }
                 }
             }
         }
 
-        uasort($tally, fn (array $a, array $b) => [$b['goals'], $b['assists']] <=> [$a['goals'], $a['assists']]);
+        uasort($tally, fn (array $a, array $b) => [$b['points'], $b['assists']] <=> [$a['points'], $a['assists']]);
 
         return $tally;
     }
@@ -163,21 +175,133 @@ class MatchTimeline
     }
 
     /**
+     * @return array<string, Position|null> zone per team member id on the field at that moment
+     */
+    public function onFieldAt(MatchPeriod $period, int $offset): array
+    {
+        return $this->replay($period, $offset)['onField'];
+    }
+
+    public function sanctionSecond(MatchSanction $sanction): ?int
+    {
+        $period = $this->periods->firstWhere('id', $sanction->period_id);
+
+        return $period === null ? null : $this->matchSecond($period, $sanction->offset_seconds);
+    }
+
+    /**
+     * @return Collection<int, MatchSanction>
+     */
+    public function sanctions(): Collection
+    {
+        return $this->sanctions;
+    }
+
+    /**
+     * How many players short the team plays right now: each time penalty or red card still running counts once.
+     */
+    public function shortSpells(): int
+    {
+        $now = $this->matchSeconds();
+
+        return $this->sanctions->filter(function (MatchSanction $sanction) use ($now) {
+            $start = $this->sanctionSecond($sanction);
+
+            return $start !== null && $sanction->kind->shortensTeam()
+                && ($sanction->duration_seconds === null || $start + $sanction->duration_seconds > $now);
+        })->count();
+    }
+
+    /**
+     * @return array<string, int> match seconds left of a running time penalty, per team member id
+     */
+    public function penaltySecondsLeft(): array
+    {
+        $now = $this->matchSeconds();
+        $left = [];
+
+        foreach ($this->sanctions as $sanction) {
+            $start = $this->sanctionSecond($sanction);
+            if ($start === null || ! $sanction->kind->isTimePenalty() || $sanction->duration_seconds === null) {
+                continue;
+            }
+            $remaining = $start + $sanction->duration_seconds - $now;
+            if ($remaining > 0) {
+                $left[$sanction->team_member_id] = max($left[$sanction->team_member_id] ?? 0, $remaining);
+            }
+        }
+
+        return $left;
+    }
+
+    /**
+     * @return array<int, string> team member ids taken off for a time penalty that has run out, not back on since
+     */
+    public function awaitingReturn(): array
+    {
+        $now = $this->matchSeconds();
+        $onField = $this->onField();
+        $waiting = [];
+
+        foreach ($this->sanctions as $sanction) {
+            $start = $this->sanctionSecond($sanction);
+            if ($start === null || ! $sanction->kind->isTimePenalty() || $sanction->substitution_id === null
+                || $start + (int) $sanction->duration_seconds > $now || array_key_exists($sanction->team_member_id, $onField)) {
+                continue;
+            }
+
+            $returned = $this->substitutions->contains(fn (MatchSubstitution $substitution) => $substitution->team_member_id === $sanction->team_member_id
+                && $substitution->direction === SubstitutionDirection::On
+                && ($period = $this->periods->firstWhere('id', $substitution->period_id)) !== null
+                && $this->matchSecond($period, $substitution->offset_seconds) >= $start);
+
+            if (! $returned) {
+                $waiting[] = $sanction->team_member_id;
+            }
+        }
+
+        return array_values(array_unique($waiting));
+    }
+
+    /**
+     * @return array<string, array<string, int>> sanctions per kind, per team member id
+     */
+    public function sanctionCounts(): array
+    {
+        $counts = [];
+        foreach ($this->sanctions as $sanction) {
+            $counts[$sanction->team_member_id][$sanction->kind->value] = ($counts[$sanction->team_member_id][$sanction->kind->value] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Replays up to and including `$until` at `$untilOffset` when given, otherwise the whole match.
+     *
      * @return array{played: array<string, int>, onField: array<string, Position|null>}
      */
-    private function replay(): array
+    private function replay(?MatchPeriod $until = null, ?int $untilOffset = null): array
     {
         $played = [];
         $onField = [];
         $substitutions = $this->substitutions->groupBy('period_id');
 
         foreach ($this->periods() as $period) {
+            if ($until !== null && $period->sequence > $until->sequence) {
+                break;
+            }
+
             $length = $this->length($period);
             $cursor = 0;
             $events = ($substitutions[$period->id] ?? collect())
                 ->sortBy([['offset_seconds', 'asc'], ['created_at', 'asc']]);
 
             foreach ($events as $substitution) {
+                if ($until !== null && $period->id === $until->id && $substitution->offset_seconds > $untilOffset) {
+                    break;
+                }
+
                 if ($period->type === PeriodType::Play) {
                     $at = min($substitution->offset_seconds, $length);
                     $this->credit($played, $onField, $at - $cursor);

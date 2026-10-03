@@ -23,7 +23,11 @@ use Kopling\Core\People\Person;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Community\UserMenu;
+use Kopling\Core\Ux\Portal\Navigation\Item;
+use Kopling\SportsManagement\Command\SeedKnhbFormatPresetsCommand;
+use Kopling\SportsManagement\Command\SeedNbbFormatPresetsCommand;
 use Kopling\SportsManagement\Command\SeedKnvbFormatPresetsCommand;
+use Kopling\SportsManagement\Command\SeedNhvFormatPresetsCommand;
 use Kopling\SportsManagement\Ux\MatchControls;
 use Kopling\SportsManagement\Ux\ModerationNav;
 use Kopling\SportsManagement\Ux\TeamsNav;
@@ -56,6 +60,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             new Icon(id: 'absent', label: 'Absent', default: 'fas-xmark'),
             new Icon(id: 'team', label: 'Team', default: 'fas-user-group'),
             new Icon(id: 'match', label: 'Match', default: 'fas-futbol'),
+            new Icon(id: 'sports-management', label: 'Sports Management', default: 'fas-medal'),
         ];
     }
 
@@ -156,6 +161,16 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             ->add(TeamsNav::class)
             ->in('kopling-sports-management::sports-management.sidebar-panel')
             ->as('teams-nav')
+            ->add(Item::class, [
+                'label' => __('kopling-sports-management::messages.portal_label'),
+                'route' => 'kopling-sports-management::sports-management/teams.index',
+                'icon' => 'kopling-sports-management::sports-management',
+                'hideOnPortal' => 'kopling-sports-management::sports-management',
+            ])
+            ->in(UserMenu::SLOT)
+            ->as('portal-link')
+            ->when('access-sports-management')
+            ->priority(UserMenu::PRIORITY_TOP)
             ->add(ModerationNav::class)
             ->in('kopling-moderation::moderation.sidebar-panel')
             ->as('moderation-nav');
@@ -174,6 +189,6 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      */
     public function commands(): array
     {
-        return [SeedKnvbFormatPresetsCommand::class];
+        return [SeedKnvbFormatPresetsCommand::class, SeedKnhbFormatPresetsCommand::class, SeedNhvFormatPresetsCommand::class, SeedNbbFormatPresetsCommand::class];
     }
 }

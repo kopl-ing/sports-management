@@ -15,7 +15,6 @@ use Kopling\SportsManagement\FieldMove;
 use Kopling\SportsManagement\HomeAway;
 use Kopling\SportsManagement\MatchLineup;
 use Kopling\SportsManagement\Team;
-use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMatch;
 use Kopling\SportsManagement\TeamMember;
 
@@ -25,7 +24,7 @@ class MatchesController
     {
         $this->authorizeStaff($request, $team);
 
-        $match = $team->matches()->create($this->validated($request));
+        $match = $team->matches()->create($this->validated($request, $team));
 
         return redirect()->route('kopling-sports-management::sports-management/matches.show', [$team, $match]);
     }
@@ -43,7 +42,6 @@ class MatchesController
             'timeline' => $teamMatch->timeline(),
             'members' => TeamMember::sorted($team->members),
             'availability' => $teamMatch->availabilities->pluck('status', 'team_member_id'),
-            'presets' => TeamFormatPreset::orderBy('name')->pluck('name', 'id'),
         ]);
     }
 
@@ -51,7 +49,7 @@ class MatchesController
     {
         $this->authorizeMatch($request, $team, $teamMatch);
 
-        $teamMatch->update($this->validated($request));
+        $teamMatch->update($this->validated($request, $team));
 
         return redirect()->route('kopling-sports-management::sports-management/matches.show', [$team, $teamMatch]);
     }
@@ -106,7 +104,7 @@ class MatchesController
         $placement = $teamMatch->lineup()->get()->mapWithKeys(fn (MatchLineup $slot) => [$slot->team_member_id => $slot->zone])->all();
 
         $changes = FieldMove::fromRequest($data, $placement);
-        if ($error = FieldMove::limitError($placement, $changes, $teamMatch->effectiveFormatPreset()?->players_on_field)) {
+        if ($error = FieldMove::limitError($placement, $changes, $teamMatch->effectiveFormatPreset()?->players_on_field, $teamMatch->sportConfig()->keeperZone($teamMatch->effectiveFormatPreset()))) {
             throw ValidationException::withMessages(['zone' => $error]);
         }
 
@@ -136,13 +134,13 @@ class MatchesController
     /**
      * @return array<string, mixed>
      */
-    private function validated(Request $request): array
+    private function validated(Request $request, Team $team): array
     {
         return $request->validate([
             'opponent_name' => ['required', 'string', 'max:255'],
             'home_away' => ['required', Rule::enum(HomeAway::class)],
             'location_address' => ['nullable', 'string', 'max:1000'],
-            'format_preset_id' => ['nullable', 'uuid', 'exists:sm_team_format_presets,id'],
+            'format_preset_id' => ['nullable', 'uuid', Rule::exists('sm_team_format_presets', 'id')->where('sport', $team->sport->value)],
             'play_minutes' => ['nullable', 'integer', 'min:1', 'max:240'],
             'scheduled_at' => ['required', 'date'],
         ]);

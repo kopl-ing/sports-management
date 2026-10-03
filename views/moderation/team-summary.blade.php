@@ -1,7 +1,8 @@
 <div class="flex flex-wrap items-start justify-between gap-2">
     <div class="min-w-0">
         <p class="font-semibold truncate">{{ $team->name }}</p>
-        <p class="text-sm opacity-60">{{ $team->club }} &middot; {{ $team->season }}
+        <p class="text-sm opacity-60">{{ $team->subtitle() }}
+            &middot; {{ $team->sport->label() }}
             @if ($team->formatPreset)
                 &middot; {{ $team->formatPreset->name }}
             @endif

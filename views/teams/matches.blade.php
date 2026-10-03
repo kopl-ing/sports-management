@@ -36,7 +36,7 @@
                                 </span>
                                 <span class="flex items-center gap-2">
                                     @if ($match->periods->isNotEmpty())
-                                        <span class="font-semibold tabular-nums">{{ $match->goals->where('opponent', false)->count() }} &ndash; {{ $match->goals->where('opponent', true)->count() }}</span>
+                                        <span class="font-semibold tabular-nums">{{ $match->goals->where('opponent', false)->sum('points') }} &ndash; {{ $match->goals->where('opponent', true)->sum('points') }}</span>
                                     @endif
                                     <span class="badge badge-outline">{{ $match->home_away->label() }}</span>
                                 </span>

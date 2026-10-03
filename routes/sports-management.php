@@ -11,6 +11,7 @@ use Kopling\SportsManagement\Controllers\TrackingController;
 
 // The Portal already gates on access-sports-management; every controller action also checks Team::isStaffedBy().
 Route::get('/', [TeamsController::class, 'index'])->name('teams.index');
+Route::get('/sport-fields', [TeamsController::class, 'sportFields'])->name('teams.sport-fields');
 Route::get('/{team}', [TeamsController::class, 'show'])->name('teams.show');
 Route::get('/{team}/matches/{teamMatch}', [MatchesController::class, 'show'])->name('matches.show');
 Route::get('/{team}/matches/{teamMatch}/track', [TrackingController::class, 'show'])->name('matches.track');
@@ -57,4 +58,7 @@ Route::middleware('can:kopling-sports-management::track-matches')->prefix('/{tea
 
     Route::post('/goals', [TrackingController::class, 'storeGoal'])->name('matches.goals.store');
     Route::post('/goals/{goal}/delete', [TrackingController::class, 'destroyGoal'])->name('matches.goals.destroy');
+
+    Route::post('/sanctions', [TrackingController::class, 'storeSanction'])->name('matches.sanctions.store');
+    Route::post('/sanctions/{sanction}/delete', [TrackingController::class, 'destroySanction'])->name('matches.sanctions.destroy');
 });

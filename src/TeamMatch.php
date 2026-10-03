@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Kopling\Core\Database\Model;
+use Kopling\SportsManagement\Sport\SportConfig;
 
 class TeamMatch extends Model
 {
@@ -52,6 +53,40 @@ class TeamMatch extends Model
     public function lineup(): HasMany
     {
         return $this->hasMany(MatchLineup::class, 'match_id');
+    }
+
+    public function sanctions(): HasMany
+    {
+        return $this->hasMany(MatchSanction::class, 'match_id');
+    }
+
+    /**
+     * @return array<int, string> team member ids that may not come on the field right now
+     */
+    public function unavailableMemberIds(MatchTimeline $timeline): array
+    {
+        $config = $this->sportConfig();
+        $preset = $this->effectiveFormatPreset();
+        $out = array_keys($timeline->penaltySecondsLeft());
+
+        foreach ($timeline->sanctionCounts() as $memberId => $counts) {
+            foreach ($counts as $kind => $count) {
+                $kind = SanctionKind::from($kind);
+                $limit = $kind->limitRule() === null ? null : $config->rule($preset, $kind->limitRule());
+                if ($kind === SanctionKind::RedCard || ($limit !== null && $count >= $limit)) {
+                    $out[] = $memberId;
+                }
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    public function effectiveMaxOnField(MatchTimeline $timeline): ?int
+    {
+        $max = $this->effectiveFormatPreset()?->players_on_field;
+
+        return $max === null ? null : max(0, $max - $timeline->shortSpells());
     }
 
     public function slots(): HasMany
@@ -105,9 +140,9 @@ class TeamMatch extends Model
 
     public function timeline(): MatchTimeline
     {
-        $this->loadMissing(['periods', 'substitutions', 'goals']);
+        $this->loadMissing(['periods', 'substitutions', 'goals', 'sanctions']);
 
-        return new MatchTimeline($this->periods, $this->substitutions, $this->goals);
+        return new MatchTimeline($this->periods, $this->substitutions, $this->goals, breaks: $this->effectiveFormatPreset()?->breaks, sanctions: $this->sanctions);
     }
 
     /**
@@ -116,6 +151,11 @@ class TeamMatch extends Model
     public function absentMemberIds(): array
     {
         return $this->availabilities()->where('status', AvailabilityStatus::Absent)->pluck('team_member_id')->all();
+    }
+
+    public function sportConfig(): SportConfig
+    {
+        return $this->team->sport->config();
     }
 
     public function effectiveFormatPreset(): ?TeamFormatPreset
@@ -141,6 +181,17 @@ class TeamMatch extends Model
         }
 
         return intdiv($minutes * min($onField, $squadSize), $squadSize) * 60;
+    }
+
+    /**
+     * Expected length of each play period, when the format says how many breaks a match has.
+     */
+    public function playPeriodSeconds(): ?int
+    {
+        $minutes = $this->effectivePlayMinutes();
+        $breaks = $this->effectiveFormatPreset()?->breaks;
+
+        return $minutes === null || $breaks === null ? null : intdiv($minutes * 60, $breaks + 1);
     }
 
     public function fairBenchSeconds(int $squadSize): ?int

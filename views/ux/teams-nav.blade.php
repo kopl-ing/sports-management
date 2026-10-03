@@ -1,6 +1,13 @@
 @use('Kopling\SportsManagement\MatchState')
 {{-- No target: boosted-without-target swaps `document.body`, same as `kopling-moderation::ux.queue-nav`. --}}
 <ul class="menu p-4 w-full" hx-boost:inherited="true">
+    <li>
+        <a href="{{ route('kopling-sports-management::sports-management/teams.index') }}"
+           class="@if (request()->routeIs('kopling-sports-management::sports-management/teams.index')) menu-active @endif">
+            <x-k::icon name="kopling-sports-management::sports-management" />
+            {{ __('kopling-sports-management::messages.all_teams') }}
+        </a>
+    </li>
     <li class="menu-title">{{ __('kopling-sports-management::messages.teams') }}</li>
     @foreach ($teams as $team)
         <li>
@@ -25,10 +32,10 @@
                             @if ($live)
                                 <span class="status status-success" aria-label="{{ MatchState::Live->label() }}"></span>
                             @endif
-                            {{ $match->opponent_name }}
+                            {{ $teams->count() > 1 ? __('kopling-sports-management::messages.team_versus', ['team' => $match->team->name, 'opponent' => $match->opponent_name]) : $match->opponent_name }}
                         </span>
                         <span class="text-xs opacity-60">
-                            @if ($teams->count() > 1){{ $match->team->name }} &middot; @endif{{ $live ? MatchState::Live->label() : $match->scheduled_at->translatedFormat('D j M, H:i') }}
+                            {{ $live ? MatchState::Live->label() : $match->scheduled_at->translatedFormat('D j M, H:i') }}
                         </span>
                     </span>
                 </a>

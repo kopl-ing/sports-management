@@ -17,7 +17,7 @@ class FieldMove
 
         return [
             'team_member_id' => ['required', 'uuid', $member, Rule::notIn($match->absentMemberIds())],
-            'zone' => ['nullable', Rule::enum(Position::class)],
+            'zone' => ['nullable', Rule::enum(Position::class)->only($match->sportConfig()->zones($match->effectiveFormatPreset()))],
             'replace_team_member_id' => ['nullable', 'uuid', $member],
             'before_team_member_id' => ['nullable', 'uuid', 'different:team_member_id', $member],
         ];
@@ -65,15 +65,24 @@ class FieldMove
      * @param array<string, Position|null> $placement
      * @param array<string, Position|null> $changes
      */
-    public static function limitError(array $placement, array $changes, ?int $maxOnField): ?string
+    /**
+     * @param array<int, string> $unavailable team member ids that may not come on
+     */
+    public static function limitError(array $placement, array $changes, ?int $maxOnField, ?Position $keeperZone, array $unavailable = []): ?string
     {
+        foreach ($changes as $memberId => $zone) {
+            if ($zone !== null && ! array_key_exists($memberId, $placement) && in_array($memberId, $unavailable, true)) {
+                return __('kopling-sports-management::messages.player_unavailable');
+            }
+        }
+
         foreach ($changes as $memberId => $zone) {
             $placement[$memberId] = $zone;
         }
         $placement = array_filter($placement, fn (?Position $zone) => $zone !== null);
 
         return match (true) {
-            count(array_filter($placement, fn (Position $zone) => $zone === Position::Keeper)) > 1 => __('kopling-sports-management::messages.one_keeper'),
+            $keeperZone !== null && count(array_filter($placement, fn (Position $zone) => $zone === $keeperZone)) > 1 => __('kopling-sports-management::messages.one_keeper'),
             $maxOnField !== null && count($placement) > $maxOnField => __('kopling-sports-management::messages.too_many_players', ['max' => $maxOnField]),
             default => null,
         };

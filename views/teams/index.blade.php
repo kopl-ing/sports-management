@@ -11,10 +11,14 @@
                 <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.store') }}" class="flex flex-col gap-4">
                     @csrf
                     <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.create_team') }}</h2>
-                    <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-sports-management::messages.name'), 'value' => old('name')]" />
+                    <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-sports-management::messages.name'), 'value' => old('name'), 'required' => true]" />
                     <x-k::form.input :data="['name' => 'club', 'label' => __('kopling-sports-management::messages.club'), 'value' => old('club')]" />
-                    <x-k::form.input :data="['name' => 'season', 'label' => __('kopling-sports-management::messages.season'), 'value' => old('season'), 'placeholder' => '2026/2027']" />
-                    <x-k::form.select :data="['name' => 'format_preset_id', 'label' => __('kopling-sports-management::messages.format_preset'), 'options' => $presets, 'value' => old('format_preset_id')]" />
+                    <x-k::form.input :data="['name' => 'season', 'label' => __('kopling-sports-management::messages.season'), 'value' => old('season', \Kopling\SportsManagement\Team::currentSeason()), 'placeholder' => \Kopling\SportsManagement\Team::currentSeason(), 'required' => true]" />
+                    @include('kopling-sports-management::teams.sport-fields', [
+                        'sport' => \Kopling\SportsManagement\Sport::tryFrom((string) old('sport')) ?? \Kopling\SportsManagement\Sport::Football,
+                        'presetId' => (string) old('format_preset_id'),
+                        'sportEditable' => true,
+                    ])
                     @if ($errors->any())
                         <p class="text-error text-sm">{{ $errors->first() }}</p>
                     @endif
@@ -33,11 +37,10 @@
                             <li class="list-row items-center">
                                 <div class="list-col-grow min-w-0">
                                     <p class="font-semibold truncate">{{ $invitation->team->name }}</p>
-                                    <p class="text-sm opacity-60 truncate">{{ $invitation->team->club }}
-                                        @if ($invitation->inviter)
-                                            &middot; {{ __('kopling-sports-management::messages.invited_by', ['name' => $invitation->inviter->name]) }}
-                                        @endif
-                                    </p>
+                                    <p class="text-sm opacity-60 truncate">{{ implode(' · ', array_filter([
+                                        $invitation->team->club,
+                                        $invitation->inviter ? __('kopling-sports-management::messages.invited_by', ['name' => $invitation->inviter->name]) : null,
+                                    ])) }}</p>
                                 </div>
                                 <form method="POST" action="{{ route('kopling-sports-management::sports-management/invitations.decline', $invitation) }}" hx-boost="true">
                                     @csrf
@@ -63,7 +66,7 @@
                         <div class="card-body flex-row items-center justify-between py-4">
                             <div>
                                 <p class="font-semibold">{{ $team->name }}</p>
-                                <p class="text-sm opacity-60">{{ $team->club }} &middot; {{ $team->season }}</p>
+                                <p class="text-sm opacity-60">{{ $team->subtitle() }}</p>
                             </div>
                             @if ($team->formatPreset)
                                 <span class="badge badge-outline">{{ $team->formatPreset->name }}</span>

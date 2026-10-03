@@ -8,30 +8,28 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Kopling\Core\Database\Model;
 
-class MatchGoal extends Model
+class MatchSanction extends Model
 {
     use HasUuids;
 
-    protected $table = 'sm_match_goals';
+    protected $table = 'sm_match_sanctions';
 
     protected $fillable = [
         'match_id',
         'period_id',
-        'opponent',
-        'own_goal',
-        'points',
-        'scorer_team_member_id',
-        'assist_team_member_id',
+        'team_member_id',
+        'kind',
         'offset_seconds',
+        'duration_seconds',
+        'substitution_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'opponent' => 'boolean',
-            'own_goal' => 'boolean',
-            'points' => 'integer',
+            'kind' => SanctionKind::class,
             'offset_seconds' => 'integer',
+            'duration_seconds' => 'integer',
         ];
     }
 
@@ -40,13 +38,8 @@ class MatchGoal extends Model
         return $this->belongsTo(MatchPeriod::class, 'period_id');
     }
 
-    public function scorer(): BelongsTo
+    public function substitution(): BelongsTo
     {
-        return $this->belongsTo(TeamMember::class, 'scorer_team_member_id');
-    }
-
-    public function assist(): BelongsTo
-    {
-        return $this->belongsTo(TeamMember::class, 'assist_team_member_id');
+        return $this->belongsTo(MatchSubstitution::class, 'substitution_id');
     }
 }

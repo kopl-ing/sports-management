@@ -3,7 +3,7 @@
     $field = fn (string $key, $current) => $filled ? old($key) : $current;
     $presetOptions = ['' => $team->formatPreset
         ? __('kopling-sports-management::messages.team_default_preset', ['preset' => $team->formatPreset->name])
-        : __('kopling-sports-management::messages.team_default_preset_none')] + $presets->all();
+        : __('kopling-sports-management::messages.team_default_preset_none')] + \Kopling\SportsManagement\TeamFormatPreset::options($team->sport);
     $homeAwayOptions = collect(\Kopling\SportsManagement\HomeAway::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])->all();
 @endphp
 <form method="POST" action="{{ $action }}" class="flex flex-col gap-4">

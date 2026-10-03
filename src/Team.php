@@ -19,12 +19,42 @@ class Team extends Model
 
     protected $table = 'sm_teams';
 
+    protected $attributes = [
+        'sport' => 'football',
+    ];
+
     protected $fillable = [
         'name',
+        'sport',
         'club',
         'season',
         'format_preset_id',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'sport' => Sport::class,
+        ];
+    }
+
+    /**
+     * The season a team created now plays in; it turns over in July.
+     */
+    public static function currentSeason(): string
+    {
+        $start = now()->month >= 7 ? now()->year : now()->year - 1;
+
+        return $start.'/'.($start + 1);
+    }
+
+    /**
+     * Club and season for a subtitle, skipping an empty club.
+     */
+    public function subtitle(): string
+    {
+        return implode(' · ', array_filter([$this->club, $this->season]));
+    }
 
     public function formatPreset(): BelongsTo
     {

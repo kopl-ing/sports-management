@@ -3,8 +3,8 @@
     $status = $availability->get($member->id);
     $statusDot = ['available' => 'status-success', 'maybe' => 'status-warning', 'absent' => 'status-error'];
 @endphp
-<div data-sm-player="{{ $member->id }}" draggable="false"
-     class="flex flex-col items-center gap-1 select-none {{ $editable ? 'touch-none cursor-grab' : '' }} rounded-full data-[sm-selected]:ring-4 data-[sm-selected]:ring-primary data-[sm-over]:ring-4 data-[sm-over]:ring-accent data-[sm-dragging]:opacity-40 data-[sm-pending]:animate-pulse data-[sm-refused]:ring-4 data-[sm-refused]:ring-error group-data-[sm-goal]:ring-2 group-data-[sm-goal]:ring-success">
+<div data-sm-player="{{ $member->id }}" draggable="false" @if (in_array($member->id, $unavailable ?? [], true)) data-sm-unavailable @endif
+     class="flex flex-col items-center gap-1 select-none {{ $editable ? 'touch-none cursor-grab' : '' }} rounded-full data-[sm-selected]:ring-4 data-[sm-selected]:ring-primary data-[sm-over]:ring-4 data-[sm-over]:ring-accent data-[sm-dragging]:opacity-40 data-[sm-pending]:animate-pulse data-[sm-refused]:ring-4 data-[sm-refused]:ring-error group-data-[sm-goal]:ring-2 group-data-[sm-goal]:ring-success group-data-[sm-sanction]:ring-2 group-data-[sm-sanction]:ring-warning data-[sm-unavailable]:opacity-50">
     <x-k::person.avatar :context="new Context(subject: $member->person)" :initials="$initials[$member->id]" :mask="null" size="w-16">
         <x-slot:indicators>
             @if ($state === \Kopling\SportsManagement\MatchState::Planned)
@@ -24,7 +24,16 @@
                 ])
                 @php($benched = $matchSeconds - ($played[$member->id] ?? 0))
                 @php($isOnField = array_key_exists($member->id, $onField))
-                @if ($fairBench && (! $isOnField || $benched >= 60))
+                @if (array_key_exists($member->id, $penaltyLeft ?? []))
+                    @include('kopling-sports-management::matches.tracking.clock', [
+                        'seconds' => $penaltyLeft[$member->id],
+                        'countdown' => true,
+                        'ticking' => $ticking,
+                        'class' => 'indicator-item indicator-bottom indicator-center badge badge-sm badge-error tabular-nums',
+                    ])
+                @elseif (in_array($member->id, $unavailable ?? [], true))
+                    <span class="indicator-item indicator-bottom indicator-center badge badge-sm badge-error">{{ __('kopling-sports-management::messages.out') }}</span>
+                @elseif ($fairBench && (! $isOnField || $benched >= 60))
                     @include('kopling-sports-management::matches.tracking.clock', [
                         'seconds' => $benched,
                         'minutesOnly' => true,

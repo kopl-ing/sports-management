@@ -18,9 +18,11 @@ use Kopling\SportsManagement\FieldSlots;
 use Kopling\SportsManagement\MatchGoal;
 use Kopling\SportsManagement\MatchLineup;
 use Kopling\SportsManagement\MatchPeriod;
+use Kopling\SportsManagement\MatchSanction;
 use Kopling\SportsManagement\MatchSubstitution;
 use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\PeriodType;
+use Kopling\SportsManagement\SanctionKind;
 use Kopling\SportsManagement\Position;
 use Kopling\SportsManagement\SubstitutionDirection;
 use Kopling\SportsManagement\Team;
@@ -51,7 +53,7 @@ class TrackingController
         $this->authorizeMatch($request, $team, $teamMatch);
 
         $team->load(['formatPreset', 'members.person']);
-        $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals']);
+        $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
         $timeline = $teamMatch->timeline();
         $involved = $teamMatch->lineup->pluck('team_member_id')
             ->concat($teamMatch->substitutions->pluck('team_member_id'))
@@ -62,14 +64,21 @@ class TrackingController
         $members = $team->members->reject(fn (TeamMember $member) => in_array($member->id, $absent, true));
         $placement = $timeline->state() === MatchState::Planned
             ? $teamMatch->lineup->mapWithKeys(fn (MatchLineup $slot) => [$slot->team_member_id => $slot->zone])->all()
-            : array_map(fn (?Position $zone) => $zone ?? Position::Midfield, $timeline->onField());
+            : array_map(fn (?Position $zone) => $zone ?? $teamMatch->sportConfig()->defaultZone(), $timeline->onField());
 
         return [
             'team' => $team,
             'match' => $teamMatch,
             'timeline' => $timeline,
             'members' => TeamMember::sorted($members)->keyBy('id'),
-            'maxOnField' => $teamMatch->effectiveFormatPreset()?->players_on_field,
+            'maxOnField' => $timeline->state() === MatchState::Planned ? $teamMatch->effectiveFormatPreset()?->players_on_field : $teamMatch->effectiveMaxOnField($timeline),
+            'unavailable' => $teamMatch->unavailableMemberIds($timeline),
+            'penaltyLeft' => $timeline->penaltySecondsLeft(),
+            'awaitingReturn' => $timeline->awaitingReturn(),
+            'sanctionKinds' => $teamMatch->sportConfig()->sanctions(),
+            'pointValues' => $teamMatch->sportConfig()->pointValues(),
+            'zones' => $teamMatch->sportConfig()->zones($teamMatch->effectiveFormatPreset()),
+            'keeperZone' => $teamMatch->sportConfig()->keeperZone($teamMatch->effectiveFormatPreset()),
             'initials' => TeamMember::shortInitials($members),
             'placement' => $placement,
             'slots' => FieldSlots::current($placement, $teamMatch->slotRows()),
@@ -192,7 +201,7 @@ class TrackingController
             ...$this->eventRules(),
             'off_team_member_id' => ['nullable', 'required_without:on_team_member_id', 'different:on_team_member_id', $this->memberOf($team)],
             'on_team_member_id' => ['nullable', $this->memberOf($team)],
-            'zone' => ['nullable', 'required_with:on_team_member_id', Rule::enum(Position::class)],
+            'zone' => ['nullable', 'required_with:on_team_member_id', Rule::enum(Position::class)->only($teamMatch->sportConfig()->zones($teamMatch->effectiveFormatPreset()))],
         ]);
 
         [$period, $offset] = $this->moment($teamMatch, $data['minute'] ?? null);
@@ -233,12 +242,12 @@ class TrackingController
         $offset = $timeline->length($period);
 
         $changes = FieldMove::fromRequest($data, $timeline->onField());
-        if ($error = FieldMove::limitError($timeline->onField(), $changes, $teamMatch->effectiveFormatPreset()?->players_on_field)) {
+        if ($error = FieldMove::limitError($timeline->onField(), $changes, $teamMatch->effectiveMaxOnField($timeline), $teamMatch->sportConfig()->keeperZone($teamMatch->effectiveFormatPreset()), $teamMatch->unavailableMemberIds($timeline))) {
             throw ValidationException::withMessages(['zone' => $error]);
         }
 
         $created = DB::transaction(function () use ($teamMatch, $timeline, $changes, $period, $offset, $data) {
-            $teamMatch->rememberSlots(array_map(fn (?Position $zone) => $zone ?? Position::Midfield, $timeline->onField()), $data);
+            $teamMatch->rememberSlots(array_map(fn (?Position $zone) => $zone ?? $teamMatch->sportConfig()->defaultZone(), $timeline->onField()), $data);
 
             return collect($changes)->map(fn (?Position $zone, string $memberId) => $teamMatch->substitutions()->create([
                 'period_id' => $period->id,
@@ -263,6 +272,7 @@ class TrackingController
         $undo = $request->session()->pull(self::undoKey($teamMatch));
         if ($undo && now()->timestamp - $undo['at'] <= self::UNDO_GRACE_SECONDS) {
             $teamMatch->goals()->whereKey($undo['goals'])->delete();
+            $teamMatch->sanctions()->whereKey($undo['sanctions'] ?? [])->delete();
             $teamMatch->substitutions()->whereKey($undo['substitutions'])->delete();
         }
 
@@ -277,13 +287,15 @@ class TrackingController
     /**
      * @param array<int, string> $goals
      * @param array<int, string> $substitutions
+     * @param array<int, string> $sanctions
      */
-    private function rememberUndo(TeamMatch $teamMatch, array $goals = [], array $substitutions = []): void
+    private function rememberUndo(TeamMatch $teamMatch, array $goals = [], array $substitutions = [], array $sanctions = []): void
     {
         session()->put(self::undoKey($teamMatch), [
             'at' => now()->timestamp,
             'goals' => $goals,
             'substitutions' => $substitutions,
+            'sanctions' => $sanctions,
         ]);
     }
 
@@ -305,6 +317,7 @@ class TrackingController
             ...$this->eventRules(),
             'opponent' => ['sometimes', 'boolean'],
             'own_goal' => ['sometimes', 'exclude_if:opponent,1', 'boolean'],
+            'points' => ['sometimes', 'integer', Rule::in($teamMatch->sportConfig()->pointValues())],
             'scorer_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', $this->memberOf($team)],
             'assist_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', 'different:scorer_team_member_id', $this->memberOf($team)],
         ]);
@@ -315,6 +328,7 @@ class TrackingController
             'period_id' => $period->id,
             'opponent' => $data['opponent'] ?? false,
             'own_goal' => $data['own_goal'] ?? false,
+            'points' => $data['points'] ?? 1,
             'scorer_team_member_id' => $data['scorer_team_member_id'] ?? null,
             'assist_team_member_id' => $data['assist_team_member_id'] ?? null,
             'offset_seconds' => $offset,
@@ -331,6 +345,71 @@ class TrackingController
         abort_unless($goal->match_id === $teamMatch->id, 404);
 
         $goal->delete();
+
+        return $this->backToTracking($team, $teamMatch);
+    }
+
+    /**
+     * A sanction that rules the player out takes them off the field at that moment, linked so deleting it puts them back.
+     */
+    public function storeSanction(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
+    {
+        $this->authorizeMatch($request, $team, $teamMatch);
+
+        $config = $teamMatch->sportConfig();
+        $preset = $teamMatch->effectiveFormatPreset();
+        $data = $request->validate([
+            ...$this->eventRules(),
+            'team_member_id' => ['required', 'uuid', $this->memberOf($team)],
+            'kind' => ['required', Rule::in(array_map(fn (SanctionKind $kind) => $kind->value, $config->sanctions()))],
+        ]);
+
+        [$period, $offset] = $this->moment($teamMatch, $data['minute'] ?? null);
+        $kind = SanctionKind::from($data['kind']);
+        $memberId = $data['team_member_id'];
+        $timeline = $teamMatch->timeline();
+        $minutes = $kind->durationRule() === null ? null : $config->rule($preset, $kind->durationRule());
+        $limit = $kind->limitRule() === null ? null : $config->rule($preset, $kind->limitRule());
+        $count = ($timeline->sanctionCounts()[$memberId][$kind->value] ?? 0) + 1;
+        $removes = $kind->shortensTeam() || ($limit !== null && $count >= $limit);
+
+        [$sanctionId, $substitutionId] = DB::transaction(function () use ($teamMatch, $timeline, $period, $offset, $kind, $memberId, $minutes, $removes) {
+            $substitution = $removes && array_key_exists($memberId, $timeline->onFieldAt($period, $offset))
+                ? $teamMatch->substitutions()->create([
+                    'period_id' => $period->id,
+                    'team_member_id' => $memberId,
+                    'direction' => SubstitutionDirection::Off,
+                    'offset_seconds' => $offset,
+                ])
+                : null;
+
+            $sanction = $teamMatch->sanctions()->create([
+                'period_id' => $period->id,
+                'team_member_id' => $memberId,
+                'kind' => $kind,
+                'offset_seconds' => $offset,
+                'duration_seconds' => $minutes === null ? null : $minutes * 60,
+                'substitution_id' => $substitution?->id,
+            ]);
+
+            return [$sanction->id, $substitution?->id];
+        });
+
+        $this->rememberUndo($teamMatch, substitutions: array_filter([$substitutionId]), sanctions: [$sanctionId]);
+
+        return $this->backToTracking($team, $teamMatch);
+    }
+
+    public function destroySanction(Request $request, Team $team, TeamMatch $teamMatch, MatchSanction $sanction): RedirectResponse
+    {
+        $this->authorizeMatch($request, $team, $teamMatch);
+        abort_unless($sanction->match_id === $teamMatch->id, 404);
+
+        DB::transaction(function () use ($sanction) {
+            $substitution = $sanction->substitution;
+            $sanction->delete();
+            $substitution?->delete();
+        });
 
         return $this->backToTracking($team, $teamMatch);
     }

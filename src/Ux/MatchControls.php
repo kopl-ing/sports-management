@@ -40,6 +40,8 @@ class MatchControls extends Component
             'state' => $timeline->state(),
             'score' => $timeline->score(),
             'running' => $running,
+            'playPeriodSeconds' => $match->playPeriodSeconds(),
+            'pointValues' => $match->sportConfig()->pointValues(),
             'ticking' => $running?->type === PeriodType::Play,
             'canTrack' => Gate::allows('kopling-sports-management::track-matches'),
         ]);

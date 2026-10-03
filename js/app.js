@@ -7,6 +7,7 @@ let ghost = null;
 let selected = null;
 let over = null;
 let goalScorer = null;
+let sanctioned = null;
 let wakeLock = null;
 
 const editableField = (el) => el?.closest('[data-sm-field][data-sm-editable]');
@@ -52,10 +53,11 @@ function targetAt(x, y, field) {
 function exceedsLimits(field, player, zone) {
     const from = zoneOf(player);
     const onField = field.querySelectorAll('[data-sm-zone] [data-sm-player]').length;
-    const keepers = field.querySelectorAll('[data-sm-zone="K"] [data-sm-player]').length;
+    const keeper = field.dataset.smKeeper;
+    const keepers = keeper ? field.querySelectorAll(`[data-sm-zone="${keeper}"] [data-sm-player]`).length : 0;
     const max = Number(field.dataset.smMax) || Infinity;
 
-    return (from === null && onField + 1 > max) || (zone === 'K' && from !== 'K' && keepers >= 1);
+    return (from === null && onField + 1 > max) || (!!keeper && zone === keeper && from !== keeper && keepers >= 1);
 }
 
 function playerBefore(zone, player, x, y) {
@@ -87,6 +89,12 @@ function move(player, target, x, y) {
     const field = editableField(player);
     const form = field?.querySelector('form[data-sm-move]');
     if (!form || !target || target === player) {
+        return;
+    }
+
+    const entering = onBench(player) && !onBench(target) ? player : (onBench(target) && !onBench(player) && target.matches('[data-sm-player]') ? target : null);
+    if (entering?.hasAttribute('data-sm-unavailable')) {
+        refuse(entering);
         return;
     }
 
@@ -157,6 +165,34 @@ function tapInGoalMode(field, player) {
     }
 }
 
+function endSanction(field) {
+    sanctioned = null;
+    select(null);
+    delete field?.dataset.smSanction;
+}
+
+function submitSanction(field, memberId, kind) {
+    const form = field.querySelector('form[data-sm-sanction-form]');
+    form.elements.team_member_id.value = memberId;
+    form.elements.kind.value = kind;
+    endSanction(field);
+    form.requestSubmit();
+}
+
+function tapInSanctionMode(field, player) {
+    if (field.dataset.smSanction !== 'player') {
+        return;
+    }
+    const kinds = field.querySelectorAll('[data-sm-sanction-kind]');
+    if (kinds.length === 1) {
+        submitSanction(field, player.dataset.smPlayer, kinds[0].dataset.smSanctionKind);
+        return;
+    }
+    sanctioned = player.dataset.smPlayer;
+    select(player);
+    field.dataset.smSanction = 'kind';
+}
+
 function endDrag() {
     ghost?.remove();
     ghost = null;
@@ -174,7 +210,8 @@ document.addEventListener('pointerdown', (event) => {
 });
 
 document.addEventListener('pointermove', (event) => {
-    if (!press || event.pointerId !== press.pointerId || editableField(press.player).dataset.smGoal) {
+    const pressedField = press && editableField(press.player);
+    if (!press || event.pointerId !== press.pointerId || pressedField.dataset.smGoal || pressedField.dataset.smSanction) {
         return;
     }
 
@@ -205,6 +242,8 @@ document.addEventListener('pointerup', (event) => {
 
     if (field.dataset.smGoal) {
         tapInGoalMode(field, player);
+    } else if (field.dataset.smSanction) {
+        tapInSanctionMode(field, player);
     } else if (ghost) {
         const target = targetAt(event.clientX, event.clientY, field);
         endDrag();
@@ -228,9 +267,30 @@ document.addEventListener('pointercancel', () => {
 document.addEventListener('click', (event) => {
     const field = event.target.closest('[data-sm-field]');
 
-    if (event.target.closest('[data-sm-goal-start]')) {
+    const goalStart = event.target.closest('[data-sm-goal-start]');
+    if (goalStart) {
         select(null);
+        field.querySelector('form[data-sm-goal-form]').elements.points.value = goalStart.dataset.smPoints ?? '1';
         field.dataset.smGoal = 'scorer';
+        return;
+    }
+    if (event.target.closest('[data-sm-sanction-start]')) {
+        select(null);
+        field.dataset.smSanction = 'player';
+        return;
+    }
+    const kind = event.target.closest('[data-sm-sanction-kind]');
+    if (kind) {
+        submitSanction(field, sanctioned, kind.dataset.smSanctionKind);
+        return;
+    }
+    if (event.target.closest('[data-sm-sanction-cancel]')) {
+        endSanction(field);
+        return;
+    }
+    const comeback = event.target.closest('[data-sm-select-player]');
+    if (comeback) {
+        select(field.querySelector(`[data-sm-player="${comeback.dataset.smSelectPlayer}"]`));
         return;
     }
     if (event.target.closest('[data-sm-goal-own]')) {

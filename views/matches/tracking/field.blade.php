@@ -1,6 +1,5 @@
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\FieldSlots')
-@use('Kopling\SportsManagement\Position')
 @php
     $benchMembers = $members->reject(fn ($member) => array_key_exists($member->id, $placement));
     if ($state !== MatchState::Planned) {
@@ -8,7 +7,7 @@
     }
 @endphp
 <div data-sm-field @if ($canMove) data-sm-editable @endif @if ($state === MatchState::Live) data-sm-live @endif
-     data-sm-max="{{ $maxOnField }}"
+     data-sm-max="{{ $maxOnField }}" data-sm-keeper="{{ $keeperZone?->value }}"
      class="group flex flex-col gap-2 h-[calc(100dvh-10rem)] min-h-[28rem]">
     @if ($canMove)
         <form autocomplete="off" data-sm-move method="POST" hx-boost="true" class="hidden"
@@ -31,19 +30,53 @@
                 <span class="hidden group-data-[sm-goal=scorer]:inline">{{ __('kopling-sports-management::messages.tap_scorer') }}</span>
                 <span class="hidden group-data-[sm-goal=assist]:inline">{{ __('kopling-sports-management::messages.tap_assist') }}</span>
                 <div class="ms-auto flex gap-1">
-                    <button type="button" data-sm-goal-own class="btn btn-sm hidden group-data-[sm-goal=scorer]:inline-flex">{{ __('kopling-sports-management::messages.own_goal') }}</button>
+                    @if ($pointValues === [1])
+                        <button type="button" data-sm-goal-own class="btn btn-sm hidden group-data-[sm-goal=scorer]:inline-flex">{{ __('kopling-sports-management::messages.own_goal') }}</button>
+                    @endif
                     <button type="button" data-sm-goal-skip class="btn btn-sm hidden group-data-[sm-goal=assist]:inline-flex">{{ __('kopling-sports-management::messages.skip') }}</button>
                     <button type="button" data-sm-goal-cancel class="btn btn-sm btn-ghost">{{ __('kopling-sports-management::messages.cancel') }}</button>
                 </div>
             </div>
+            @if ($sanctionKinds !== [])
+                <div class="hidden group-data-[sm-sanction]:flex absolute inset-x-0 bottom-0 z-10 alert alert-warning py-2 shadow-md">
+                    <span class="hidden group-data-[sm-sanction=player]:inline">{{ __('kopling-sports-management::messages.tap_sanctioned') }}</span>
+                    <div class="ms-auto flex flex-wrap justify-end gap-1">
+                        @foreach ($sanctionKinds as $kind)
+                            <button type="button" data-sm-sanction-kind="{{ $kind->value }}" class="btn btn-sm hidden group-data-[sm-sanction=kind]:inline-flex">{{ $kind->label() }}</button>
+                        @endforeach
+                        <button type="button" data-sm-sanction-cancel class="btn btn-sm btn-ghost">{{ __('kopling-sports-management::messages.cancel') }}</button>
+                    </div>
+                </div>
+            @endif
         @endif
     </div>
 
+    @if ($canMove && $state === MatchState::Live)
+        @foreach (array_unique([...array_keys($ticking ? $penaltyLeft : []), ...$awaitingReturn]) as $memberId)
+            <div role="status" class="alert alert-info py-2" @if (! in_array($memberId, $awaitingReturn, true)) hidden @endif
+                 @if (array_key_exists($memberId, $penaltyLeft) && $ticking)
+                     x-data x-init="setTimeout(() => {
+                         $el.hidden = false;
+                         navigator.vibrate?.([300, 150, 300]);
+                         const field = $el.closest('[data-sm-field]');
+                         field.dataset.smMax = Number(field.dataset.smMax) + 1;
+                         field.querySelector('[data-sm-player=&quot;{{ $memberId }}&quot;]')?.removeAttribute('data-sm-unavailable');
+                     }, {{ $penaltyLeft[$memberId] * 1000 }})"
+                 @endif>
+                <span>{{ __('kopling-sports-management::messages.penalty_over', ['name' => $members->get($memberId)?->person->name ?? '?']) }}</span>
+                <div class="ms-auto flex gap-1">
+                    <button type="button" data-sm-select-player="{{ $memberId }}" class="btn btn-sm">{{ __('kopling-sports-management::messages.bring_back') }}</button>
+                    <button type="button" class="btn btn-sm btn-ghost" x-data x-on:click="$el.closest('[role=status]').remove()">{{ __('kopling-sports-management::messages.dismiss') }}</button>
+                </div>
+            </div>
+        @endforeach
+    @endif
+
     <div class="card card-border bg-base-100 flex-1 overflow-hidden">
-        @foreach ([Position::Forward, Position::Midfield, Position::Defender, Position::Keeper] as $zone)
+        @foreach ($zones as $zone)
             <div data-sm-zone="{{ $zone->value }}"
                  class="relative flex-1 flex flex-wrap items-center justify-center gap-5 p-2 border-b border-dashed border-base-300 last:border-b-0 data-[sm-over]:bg-primary/10 data-[sm-refused]:bg-error/15">
-                <span class="absolute start-3 top-2 text-xs font-semibold opacity-40" title="{{ $zone->label() }}">{{ $zone->value }}</span>
+                <span class="absolute start-3 top-2 text-xs font-semibold opacity-40" title="{{ $zone->label($team->sport) }}">{{ $zone->value }}</span>
                 @foreach (FieldSlots::order($members->filter(fn ($member) => ($placement[$member->id] ?? false) === $zone)->keys()->all(), $slots) as $memberId)
                     @include('kopling-sports-management::matches.tracking.player', ['member' => $members[$memberId]])
                 @endforeach
@@ -72,9 +105,26 @@
             <input type="hidden" name="scorer_team_member_id">
             <input type="hidden" name="assist_team_member_id">
             <input type="hidden" name="own_goal">
+            <input type="hidden" name="points" value="1">
         </form>
-        <button type="button" data-sm-goal-start class="btn btn-success btn-lg w-full group-data-[sm-goal]:btn-disabled">
-            {{ __('kopling-sports-management::messages.goal_for_us') }}
-        </button>
+        <div class="flex gap-2">
+            @foreach ($pointValues as $points)
+                <button type="button" data-sm-goal-start data-sm-points="{{ $points }}" class="btn btn-success btn-lg flex-1 group-data-[sm-goal]:btn-disabled group-data-[sm-sanction]:btn-disabled"
+                        @if (count($pointValues) > 1) aria-label="{{ trans_choice('kopling-sports-management::messages.points_for_us', $points) }}" @endif>
+                    {{ count($pointValues) > 1 ? '+'.$points : __('kopling-sports-management::messages.goal_for_us') }}
+                </button>
+            @endforeach
+            @if ($sanctionKinds !== [])
+                <form autocomplete="off" data-sm-sanction-form method="POST" hx-boost="true" class="hidden"
+                      action="{{ route('kopling-sports-management::sports-management/matches.sanctions.store', [$team, $match]) }}">
+                    @csrf
+                    <input type="hidden" name="team_member_id">
+                    <input type="hidden" name="kind">
+                </form>
+                <button type="button" data-sm-sanction-start class="btn btn-warning btn-lg group-data-[sm-goal]:btn-disabled group-data-[sm-sanction]:btn-disabled">
+                    {{ __('kopling-sports-management::messages.sanction_button.'.$team->sport->value) }}
+                </button>
+            @endif
+        </div>
     @endif
 </div>

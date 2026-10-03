@@ -1,7 +1,7 @@
 @use('Kopling\SportsManagement\MatchGoal')
+@use('Kopling\SportsManagement\MatchSanction')
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
-@use('Kopling\SportsManagement\Position')
 @use('Kopling\SportsManagement\SubstitutionDirection')
 @php
     $bench = $members->keys()->diff(array_keys($onField));
@@ -32,7 +32,8 @@
         @forelse ($timeline->periods()->reverse() as $period)
             @php
                 $events = $match->goals->where('period_id', $period->id)
-                    ->concat($match->substitutions->where('period_id', $period->id))
+                    ->concat($match->sanctions->where('period_id', $period->id))
+                    ->concat($match->substitutions->where('period_id', $period->id)->whereNotIn('id', $match->sanctions->pluck('substitution_id')->filter()))
                     ->sortBy([['offset_seconds', 'desc'], ['created_at', 'desc']]);
                 $modalId = 'modal-period-'.$period->id;
             @endphp
@@ -66,27 +67,35 @@
                     @foreach ($events as $event)
                         @php
                             $isGoal = $event instanceof MatchGoal;
-                            $destroyRoute = $isGoal
-                                ? route('kopling-sports-management::sports-management/matches.goals.destroy', [$team, $match, $event])
-                                : route('kopling-sports-management::sports-management/matches.substitutions.destroy', [$team, $match, $event]);
+                            $destroyRoute = match (true) {
+                                $isGoal => route('kopling-sports-management::sports-management/matches.goals.destroy', [$team, $match, $event]),
+                                $event instanceof MatchSanction => route('kopling-sports-management::sports-management/matches.sanctions.destroy', [$team, $match, $event]),
+                                default => route('kopling-sports-management::sports-management/matches.substitutions.destroy', [$team, $match, $event]),
+                            };
                         @endphp
                         <li class="flex items-center gap-2 py-1">
                             <span class="w-10 text-sm opacity-60 tabular-nums">{{ $minute($timeline->matchSecond($period, $event->offset_seconds)) }}</span>
                             @if ($isGoal)
                                 @if ($event->opponent)
-                                    <span class="badge badge-sm badge-error">{{ __('kopling-sports-management::messages.goal') }}</span>
+                                    <span class="badge badge-sm badge-error">{{ count($pointValues) > 1 ? '+'.$event->points : __('kopling-sports-management::messages.goal') }}</span>
                                     {{ $match->opponent_name }}
                                 @else
-                                    <span class="badge badge-sm badge-success">{{ __('kopling-sports-management::messages.goal') }}</span>
+                                    <span class="badge badge-sm badge-success">{{ count($pointValues) > 1 ? '+'.$event->points : __('kopling-sports-management::messages.goal') }}</span>
                                     {{ $event->own_goal ? __('kopling-sports-management::messages.own_goal_by', ['opponent' => $match->opponent_name]) : $name($event->scorer_team_member_id) }}
                                     @if ($event->assist_team_member_id)
                                         <span class="text-sm opacity-60">({{ __('kopling-sports-management::messages.assist') }}: {{ $name($event->assist_team_member_id) }})</span>
                                     @endif
                                 @endif
+                            @elseif ($event instanceof MatchSanction)
+                                <span class="badge badge-sm {{ $event->kind->badge() }}">{{ $event->kind->label() }}</span>
+                                {{ $name($event->team_member_id) }}
+                                @if ($event->kind->isTimePenalty() && $event->duration_seconds)
+                                    <span class="text-sm opacity-60">({{ $minute($event->duration_seconds) }})</span>
+                                @endif
                             @else
                                 <span class="opacity-80">
                                     @if ($event->direction === SubstitutionDirection::On && $event->zone)
-                                        {{ __('kopling-sports-management::messages.came_on_at', ['name' => $name($event->team_member_id), 'position' => $event->zone->label()]) }}
+                                        {{ __('kopling-sports-management::messages.came_on_at', ['name' => $name($event->team_member_id), 'position' => $event->zone->label($team->sport)]) }}
                                     @else
                                         {{ __($event->direction === SubstitutionDirection::On ? 'kopling-sports-management::messages.came_on' : 'kopling-sports-management::messages.went_off', ['name' => $name($event->team_member_id)]) }}
                                     @endif
@@ -117,7 +126,9 @@
                     {{ $name($memberId) }}
                     <span class="ms-auto flex gap-1">
                         @if ($tally['goals'])
-                            <span class="badge badge-sm badge-success">{{ trans_choice('kopling-sports-management::messages.goals_count', $tally['goals']) }}</span>
+                            <span class="badge badge-sm badge-success">{{ count($pointValues) > 1
+                                ? trans_choice('kopling-sports-management::messages.points_count', $tally['points'])
+                                : trans_choice('kopling-sports-management::messages.goals_count', $tally['goals']) }}</span>
                         @endif
                         @if ($tally['assists'])
                             <span class="badge badge-sm badge-ghost">{{ trans_choice('kopling-sports-management::messages.assists_count', $tally['assists']) }}</span>
@@ -213,14 +224,34 @@
                             </select>
                             <select name="zone" class="select select-sm" aria-label="{{ __('kopling-sports-management::messages.zone') }}">
                                 <option value="">{{ __('kopling-sports-management::messages.zone') }}</option>
-                                @foreach (Position::cases() as $zone)
-                                    <option value="{{ $zone->value }}">{{ $zone->label() }}</option>
+                                @foreach ($zones as $zone)
+                                    <option value="{{ $zone->value }}">{{ $zone->label($team->sport) }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <button type="submit" class="btn btn-sm self-start">{{ __('kopling-sports-management::messages.substitute') }}</button>
                     </div>
                 </form>
+                @if ($sanctionKinds !== [])
+                    <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.sanctions.store', [$team, $match]) }}" hx-boost="true" class="flex flex-col gap-3">
+                        @csrf
+                        <h3 class="font-semibold">{{ __('kopling-sports-management::messages.sanction_button.'.$team->sport->value) }}</h3>
+                        @include('kopling-sports-management::matches.tracking.when')
+                        <div class="flex flex-wrap gap-2">
+                            <select name="team_member_id" class="select select-sm" aria-label="{{ __('kopling-sports-management::messages.player') }}" required>
+                                @foreach ($members as $member)
+                                    <option value="{{ $member->id }}">{{ $member->person->name }}</option>
+                                @endforeach
+                            </select>
+                            <select name="kind" class="select select-sm" aria-label="{{ __('kopling-sports-management::messages.sanction_kind') }}">
+                                @foreach ($sanctionKinds as $kind)
+                                    <option value="{{ $kind->value }}">{{ $kind->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning btn-sm self-start">{{ __('kopling-sports-management::messages.record') }}</button>
+                    </form>
+                @endif
             @endif
         </div>
     </details>

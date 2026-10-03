@@ -7,8 +7,9 @@ namespace Kopling\SportsManagement\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Kopling\SportsManagement\Sport;
 use Kopling\SportsManagement\Team;
-use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamInvitation;
 use Kopling\SportsManagement\TeamMember;
 
@@ -23,13 +24,21 @@ class TeamsController
                 ->orderBy('name')
                 ->get(),
             'invitations' => TeamInvitation::for($request->user())->with(['team', 'inviter'])->get(),
-            'presets' => TeamFormatPreset::orderBy('name')->pluck('name', 'id'),
+        ]);
+    }
+
+    public function sportFields(Request $request): View
+    {
+        return view('kopling-sports-management::teams.sport-fields', [
+            'sport' => Sport::tryFrom((string) $request->query('sport')) ?? Sport::Football,
+            'presetId' => (string) $request->query('format_preset_id'),
+            'sportEditable' => true,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $team = Team::create($this->validated($request));
+        $team = Team::create($this->validated($request, null));
         $team->staff()->attach($request->user(), ['owner' => true]);
 
         return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
@@ -48,7 +57,7 @@ class TeamsController
             'pastMatches' => $team->matches()->with(['periods', 'goals'])->where('scheduled_at', '<', now()->startOfDay())->orderByDesc('scheduled_at')->get(),
             'invitations' => $team->invitations()->orderBy('email')->get(),
             'isOwner' => $team->isOwnedBy($request->user()),
-            'presets' => TeamFormatPreset::orderBy('name')->pluck('name', 'id'),
+            'sportLocked' => $team->matches()->exists(),
         ]);
     }
 
@@ -56,7 +65,7 @@ class TeamsController
     {
         $this->authorizeStaff($request, $team);
 
-        $team->update($this->validated($request));
+        $team->update($this->validated($request, $team));
 
         return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
     }
@@ -78,13 +87,17 @@ class TeamsController
     /**
      * @return array<string, mixed>
      */
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Team $team): array
     {
+        $locked = $team?->matches()->exists() ?? false;
+        $sport = $locked ? $team->sport : (Sport::tryFrom((string) $request->input('sport')) ?? Sport::Football);
+
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'club' => ['required', 'string', 'max:255'],
+            'sport' => $locked ? ['exclude'] : ['required', Rule::enum(Sport::class)],
+            'club' => ['nullable', 'string', 'max:255'],
             'season' => ['required', 'string', 'max:255'],
-            'format_preset_id' => ['nullable', 'uuid', 'exists:sm_team_format_presets,id'],
+            'format_preset_id' => ['nullable', 'uuid', Rule::exists('sm_team_format_presets', 'id')->where('sport', $sport->value)],
         ]);
     }
 }
