@@ -30,6 +30,7 @@ class MatchControls extends Component
     public function render(): View
     {
         $match = $this->request->route('teamMatch');
+        $match->setRelation('team', $this->request->route('team'));
         $timeline = $match->timeline();
         $running = $timeline->runningPeriod();
 
@@ -44,6 +45,7 @@ class MatchControls extends Component
             'pointValues' => $match->sportConfig()->pointValues(),
             'ticking' => $running?->type === PeriodType::Play,
             'canTrack' => Gate::allows('kopling-sports-management::track-matches'),
+            'duties' => $match->dutiesOf($this->request->user()),
         ]);
     }
 }

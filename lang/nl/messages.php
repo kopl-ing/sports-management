@@ -57,6 +57,20 @@ return [
     'confirm_leave_team' => 'Dit team verlaten? Je hebt geen toegang meer tot je opnieuw wordt uitgenodigd.',
     'cannot_leave_last_owner' => 'Maak eerst iemand anders eigenaar voordat je vertrekt.',
     'confirm_remove_staff' => 'Dit staflid uit het team halen?',
+    'staff_role_label' => 'Rol',
+    'staff_role' => [
+        'coach' => 'Trainer/coach',
+        'referee' => 'Spelbegeleider',
+    ],
+    'no_referee' => 'Geen spelbegeleider',
+    'referee_duties' => 'Spelbegeleider houdt bij',
+    'referee_duties_help' => 'Trainers zien deze knoppen niet tijdens het bijhouden.',
+    'referee_duty' => [
+        'timing' => 'Tijd',
+        'scoring' => 'Score',
+    ],
+    'refereed_by' => 'Spelbegeleider: :name (:duties)',
+    'lineup_incomplete' => 'Maak eerst de basisopstelling compleet: vul elke positie, of zet iedereen die er is in het veld.',
     'delete_team' => 'Team verwijderen',
     'confirm_delete_team' => 'Dit team verwijderen, inclusief selectie en wedstrijden? Dit kan niet ongedaan worden gemaakt.',
 

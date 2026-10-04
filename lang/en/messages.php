@@ -64,6 +64,20 @@ return [
     'confirm_leave_team' => 'Leave this team? You lose access until invited again.',
     'cannot_leave_last_owner' => 'Make someone else an owner before leaving.',
     'confirm_remove_staff' => 'Remove this staff member from the team?',
+    'staff_role_label' => 'Role',
+    'staff_role' => [
+        'coach' => 'Coach',
+        'referee' => 'Referee',
+    ],
+    'no_referee' => 'No referee',
+    'referee_duties' => 'Referee takes care of',
+    'referee_duties_help' => 'Coaches don\'t see these controls while tracking.',
+    'referee_duty' => [
+        'timing' => 'Time',
+        'scoring' => 'Score',
+    ],
+    'refereed_by' => 'Referee: :name (:duties)',
+    'lineup_incomplete' => 'Complete the starting lineup first: fill every position, or put everyone available on the field.',
     'delete_team' => 'Delete team',
     'confirm_delete_team' => 'Delete this team, including its roster and matches? This cannot be undone.',
 

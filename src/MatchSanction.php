@@ -14,6 +14,8 @@ class MatchSanction extends Model
 
     protected $table = 'sm_match_sanctions';
 
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+
     protected $fillable = [
         'match_id',
         'period_id',

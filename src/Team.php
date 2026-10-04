@@ -63,7 +63,7 @@ class Team extends Model
 
     public function staff(): BelongsToMany
     {
-        return $this->belongsToMany(Person::class, 'sm_team_staff')->withPivot('owner')->withTimestamps();
+        return $this->belongsToMany(Person::class, 'sm_team_staff')->withPivot('owner', 'role')->withTimestamps();
     }
 
     public function invitations(): HasMany
@@ -84,6 +84,23 @@ class Team extends Model
     public function isStaffedBy(?Person $person): bool
     {
         return $person !== null && $this->staff()->whereKey($person->id)->exists();
+    }
+
+    public function referees(): BelongsToMany
+    {
+        return $this->staff()->wherePivot('role', StaffRole::Referee->value);
+    }
+
+    public function roleOf(?Person $person): ?StaffRole
+    {
+        $role = $person === null ? null : $this->staff()->whereKey($person->id)->first()?->pivot->role;
+
+        return $role === null ? null : StaffRole::from($role);
+    }
+
+    public function isCoachedBy(?Person $person): bool
+    {
+        return $this->roleOf($person) === StaffRole::Coach;
     }
 
     public function isOwnedBy(?Person $person): bool

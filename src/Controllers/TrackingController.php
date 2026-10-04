@@ -24,6 +24,7 @@ use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\PeriodType;
 use Kopling\SportsManagement\SanctionKind;
 use Kopling\SportsManagement\Position;
+use Kopling\SportsManagement\RefereeDuty;
 use Kopling\SportsManagement\SubstitutionDirection;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamMatch;
@@ -34,6 +35,8 @@ class TrackingController
     public const UNDO_SECONDS = 10;
 
     private const UNDO_GRACE_SECONDS = 60;
+
+    private const REPEAT_SECONDS = 5;
 
     public function show(Request $request, Team $team, TeamMatch $teamMatch): View
     {
@@ -50,7 +53,7 @@ class TrackingController
      */
     private function matchData(Request $request, Team $team, TeamMatch $teamMatch): array
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeView($request, $team, $teamMatch);
 
         $team->load(['formatPreset', 'members.person']);
         $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
@@ -84,6 +87,8 @@ class TrackingController
             'slots' => FieldSlots::current($placement, $teamMatch->slotRows()),
             'availability' => $teamMatch->availabilities->pluck('status', 'team_member_id'),
             'canTrack' => Gate::allows('kopling-sports-management::track-matches'),
+            'isCoach' => $team->isCoachedBy($request->user()),
+            'duties' => $teamMatch->dutiesOf($request->user()),
             'state' => $timeline->state(),
             'running' => $timeline->runningPeriod(),
             'played' => $timeline->playedSeconds(),
@@ -96,11 +101,22 @@ class TrackingController
      */
     public function startPeriod(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Timing);
 
         $data = $request->validate([
             'type' => ['required', Rule::enum(PeriodType::class)],
         ]);
+
+        $latest = $teamMatch->periods->last();
+        if ($latest?->type->value === $data['type'] && $latest->started_at?->diffInSeconds(now()) < self::REPEAT_SECONDS) {
+            return $this->backToTracking($team, $teamMatch);
+        }
+
+        if ($teamMatch->periods->isEmpty() && ! $this->lineupComplete($team, $teamMatch)) {
+            throw ValidationException::withMessages([
+                'lineup' => __('kopling-sports-management::messages.lineup_incomplete'),
+            ]);
+        }
 
         DB::transaction(function () use ($teamMatch, $data) {
             $timeline = $teamMatch->timeline();
@@ -136,7 +152,7 @@ class TrackingController
 
     public function storePeriod(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Timing);
 
         $data = $request->validate([
             'type' => ['required', Rule::enum(PeriodType::class)],
@@ -195,7 +211,7 @@ class TrackingController
      */
     public function storeSubstitution(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeCoach($request, $team, $teamMatch);
 
         $data = $request->validate([
             ...$this->eventRules(),
@@ -233,7 +249,7 @@ class TrackingController
      */
     public function moveOnField(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeCoach($request, $team, $teamMatch);
 
         $data = $request->validate(FieldMove::rules($team, $teamMatch));
         $timeline = $teamMatch->timeline();
@@ -267,7 +283,7 @@ class TrackingController
 
     public function undo(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeView($request, $team, $teamMatch);
 
         $undo = $request->session()->pull(self::undoKey($teamMatch));
         if ($undo && now()->timestamp - $undo['at'] <= self::UNDO_GRACE_SECONDS) {
@@ -301,7 +317,7 @@ class TrackingController
 
     public function destroySubstitution(Request $request, Team $team, TeamMatch $teamMatch, MatchSubstitution $substitution): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeCoach($request, $team, $teamMatch);
         abort_unless($substitution->match_id === $teamMatch->id, 404);
 
         $substitution->delete();
@@ -311,7 +327,7 @@ class TrackingController
 
     public function storeGoal(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Scoring);
 
         $data = $request->validate([
             ...$this->eventRules(),
@@ -323,6 +339,18 @@ class TrackingController
         ]);
 
         [$period, $offset] = $this->moment($teamMatch, $data['minute'] ?? null);
+
+        $repeat = ($data['minute'] ?? null) === null && $teamMatch->goals()
+            ->where('created_at', '>=', now()->subSeconds(self::REPEAT_SECONDS))
+            ->where('opponent', (bool) ($data['opponent'] ?? false))
+            ->where('own_goal', (bool) ($data['own_goal'] ?? false))
+            ->where('points', (int) ($data['points'] ?? 1))
+            ->where('scorer_team_member_id', $data['scorer_team_member_id'] ?? null)
+            ->where('assist_team_member_id', $data['assist_team_member_id'] ?? null)
+            ->exists();
+        if ($repeat) {
+            return $this->backToTracking($team, $teamMatch);
+        }
 
         $goal = $teamMatch->goals()->create([
             'period_id' => $period->id,
@@ -341,7 +369,7 @@ class TrackingController
 
     public function destroyGoal(Request $request, Team $team, TeamMatch $teamMatch, MatchGoal $goal): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Scoring);
         abort_unless($goal->match_id === $teamMatch->id, 404);
 
         $goal->delete();
@@ -354,7 +382,7 @@ class TrackingController
      */
     public function storeSanction(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Sanctions);
 
         $config = $teamMatch->sportConfig();
         $preset = $teamMatch->effectiveFormatPreset();
@@ -402,7 +430,7 @@ class TrackingController
 
     public function destroySanction(Request $request, Team $team, TeamMatch $teamMatch, MatchSanction $sanction): RedirectResponse
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Sanctions);
         abort_unless($sanction->match_id === $teamMatch->id, 404);
 
         DB::transaction(function () use ($sanction) {
@@ -471,15 +499,45 @@ class TrackingController
         return Rule::exists('sm_team_members', 'id')->where('team_id', $team->id);
     }
 
-    private function authorizeMatch(Request $request, Team $team, TeamMatch $teamMatch): void
+    /**
+     * Every field slot filled, or nobody left on the bench to fill them.
+     */
+    private function lineupComplete(Team $team, TeamMatch $teamMatch): bool
     {
-        abort_unless($team->isStaffedBy($request->user()), 403);
+        $lineup = $teamMatch->lineup()->pluck('team_member_id')->all();
+        $benched = $team->members()->whereNotIn('id', $lineup)->whereNotIn('id', $teamMatch->absentMemberIds())->exists();
+        $needed = $teamMatch->effectiveFormatPreset()?->players_on_field ?? 1;
+
+        return ! $benched || count($lineup) >= $needed;
+    }
+
+    private function inTeam(Team $team, TeamMatch $teamMatch): void
+    {
         abort_unless($teamMatch->team_id === $team->id, 404);
+        $teamMatch->setRelation('team', $team);
+    }
+
+    private function authorizeView(Request $request, Team $team, TeamMatch $teamMatch): void
+    {
+        $this->inTeam($team, $teamMatch);
+        abort_unless($teamMatch->isVisibleTo($request->user()), 403);
+    }
+
+    private function authorizeCoach(Request $request, Team $team, TeamMatch $teamMatch): void
+    {
+        $this->inTeam($team, $teamMatch);
+        abort_unless($team->isCoachedBy($request->user()), 403);
+    }
+
+    private function authorizeDuty(Request $request, Team $team, TeamMatch $teamMatch, RefereeDuty $duty): void
+    {
+        $this->inTeam($team, $teamMatch);
+        abort_unless($teamMatch->handles($request->user(), $duty), 403);
     }
 
     private function authorizePeriod(Request $request, Team $team, TeamMatch $teamMatch, MatchPeriod $period): void
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Timing);
         abort_unless($period->match_id === $teamMatch->id, 404);
     }
 

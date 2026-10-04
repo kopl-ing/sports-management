@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Kopling\SportsManagement\Sport;
+use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamInvitation;
 use Kopling\SportsManagement\TeamMember;
@@ -46,15 +47,21 @@ class TeamsController
 
     public function show(Request $request, Team $team): View
     {
-        $this->authorizeStaff($request, $team);
+        $role = $team->roleOf($request->user());
+        abort_if($role === null, 403);
+        $isCoach = $role === StaffRole::Coach;
 
         $team->load(['formatPreset', 'staff', 'members.person']);
         $team->setRelation('members', TeamMember::sorted($team->members));
+        $matches = fn () => $team->matches()
+            ->with(['periods', 'goals'])
+            ->when(! $isCoach, fn ($query) => $query->where('referee_person_id', $request->user()->id));
 
         return view('kopling-sports-management::teams.show', [
             'team' => $team,
-            'upcomingMatches' => $team->matches()->with(['periods', 'goals'])->where('scheduled_at', '>=', now()->startOfDay())->orderBy('scheduled_at')->get(),
-            'pastMatches' => $team->matches()->with(['periods', 'goals'])->where('scheduled_at', '<', now()->startOfDay())->orderByDesc('scheduled_at')->get(),
+            'isCoach' => $isCoach,
+            'upcomingMatches' => $matches()->where('scheduled_at', '>=', now()->startOfDay())->orderBy('scheduled_at')->get(),
+            'pastMatches' => $matches()->where('scheduled_at', '<', now()->startOfDay())->orderByDesc('scheduled_at')->get(),
             'invitations' => $team->invitations()->orderBy('email')->get(),
             'isOwner' => $team->isOwnedBy($request->user()),
             'sportLocked' => $team->matches()->exists(),
@@ -63,7 +70,7 @@ class TeamsController
 
     public function update(Request $request, Team $team): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        abort_unless($team->isCoachedBy($request->user()), 403);
 
         $team->update($this->validated($request, $team));
 
@@ -77,11 +84,6 @@ class TeamsController
         $team->forceDelete();
 
         return redirect()->route('kopling-sports-management::sports-management/teams.index');
-    }
-
-    private function authorizeStaff(Request $request, Team $team): void
-    {
-        abort_unless($team->isStaffedBy($request->user()), 403);
     }
 
     /**

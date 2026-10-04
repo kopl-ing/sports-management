@@ -16,7 +16,7 @@ class TeamMembersController
 {
     public function store(Request $request, Team $team): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        $this->authorizeCoach($request, $team);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -41,7 +41,7 @@ class TeamMembersController
 
     public function update(Request $request, Team $team, TeamMember $teamMember): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        $this->authorizeCoach($request, $team);
         abort_unless($teamMember->team_id === $team->id, 404);
 
         $data = $request->validate([
@@ -65,7 +65,7 @@ class TeamMembersController
 
     public function destroy(Request $request, Team $team, TeamMember $teamMember): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        $this->authorizeCoach($request, $team);
         abort_unless($teamMember->team_id === $team->id, 404);
 
         $teamMember->delete();
@@ -73,8 +73,8 @@ class TeamMembersController
         return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
     }
 
-    private function authorizeStaff(Request $request, Team $team): void
+    private function authorizeCoach(Request $request, Team $team): void
     {
-        abort_unless($team->isStaffedBy($request->user()), 403);
+        abort_unless($team->isCoachedBy($request->user()), 403);
     }
 }

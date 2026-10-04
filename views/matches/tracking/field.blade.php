@@ -25,7 +25,7 @@
     <div class="relative flex items-center justify-between text-sm">
         <span class="opacity-60">{{ $state === MatchState::Planned ? __('kopling-sports-management::messages.lineup') : $team->sport->trans('on_field') }}</span>
         <span class="tabular-nums opacity-60">{{ count($placement) }}{{ $maxOnField ? ' / '.$maxOnField : '' }}</span>
-        @if ($canTrack && $state === MatchState::Live)
+        @if ($scoring || $sanctioning)
             <div class="hidden group-data-[sm-goal]:flex absolute inset-x-0 bottom-0 z-10 alert alert-success py-2 shadow-md">
                 <span class="hidden group-data-[sm-goal=scorer]:inline">{{ $team->sport->trans('tap_scorer') }}</span>
                 <span class="hidden group-data-[sm-goal=assist]:inline">{{ __('kopling-sports-management::messages.tap_assist') }}</span>
@@ -37,7 +37,7 @@
                     <button type="button" data-sm-goal-cancel class="btn btn-sm btn-ghost">{{ __('kopling-sports-management::messages.cancel') }}</button>
                 </div>
             </div>
-            @if ($sanctionKinds !== [])
+            @if ($sanctioning)
                 <div class="hidden group-data-[sm-sanction]:flex absolute inset-x-0 bottom-0 z-10 alert alert-warning py-2 shadow-md">
                     <span class="hidden group-data-[sm-sanction=player]:inline">{{ __('kopling-sports-management::messages.tap_sanctioned') }}</span>
                     <div class="ms-auto flex flex-wrap justify-end gap-1">
@@ -84,21 +84,23 @@
         @endforeach
     </div>
 
-    <div data-sm-bench class="relative card card-border bg-base-200 data-[sm-over]:bg-primary/10">
-        @if ($fairShare !== null)
-            <span class="px-3 pt-2 text-center text-xs font-semibold opacity-40 tabular-nums pointer-events-none"
-                  title="{{ __('kopling-sports-management::messages.target_help') }}">{{ __('kopling-sports-management::messages.target_play_time', ['minutes' => intdiv($fairShare, 60)]) }}@if ($fairBench), {{ __('kopling-sports-management::messages.target_bench_time', ['minutes' => intdiv($fairBench, 60)]) }}@endif</span>
-        @endif
-        <div data-sm-bench-list class="card-body flex-row flex-wrap items-center justify-center gap-5 p-3 min-h-24">
-            @forelse ($benchMembers as $member)
-                @include('kopling-sports-management::matches.tracking.player')
-            @empty
-                <span class="text-sm opacity-60">{{ __('kopling-sports-management::messages.bench_empty') }}</span>
-            @endforelse
+    @if ($isCoach)
+        <div data-sm-bench class="relative card card-border bg-base-200 data-[sm-over]:bg-primary/10">
+            @if ($fairShare !== null)
+                <span class="px-3 pt-2 text-center text-xs font-semibold opacity-40 tabular-nums pointer-events-none"
+                      title="{{ __('kopling-sports-management::messages.target_help') }}">{{ __('kopling-sports-management::messages.target_play_time', ['minutes' => intdiv($fairShare, 60)]) }}@if ($fairBench), {{ __('kopling-sports-management::messages.target_bench_time', ['minutes' => intdiv($fairBench, 60)]) }}@endif</span>
+            @endif
+            <div data-sm-bench-list class="card-body flex-row flex-wrap items-center justify-center gap-5 p-3 min-h-24">
+                @forelse ($benchMembers as $member)
+                    @include('kopling-sports-management::matches.tracking.player')
+                @empty
+                    <span class="text-sm opacity-60">{{ __('kopling-sports-management::messages.bench_empty') }}</span>
+                @endforelse
+            </div>
         </div>
-    </div>
+    @endif
 
-    @if ($canTrack && $state === MatchState::Live)
+    @if ($scoring || $sanctioning)
         <form autocomplete="off" data-sm-goal-form method="POST" hx-boost="true" class="hidden"
               action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}">
             @csrf
@@ -108,13 +110,15 @@
             <input type="hidden" name="points" value="1">
         </form>
         <div class="flex gap-2">
-            @foreach ($pointValues as $points)
-                <button type="button" data-sm-goal-start data-sm-points="{{ $points }}" class="btn btn-success btn-lg flex-1 group-data-[sm-goal]:btn-disabled group-data-[sm-sanction]:btn-disabled"
-                        @if (count($pointValues) > 1) aria-label="{{ trans_choice('kopling-sports-management::messages.points_for_us', $points) }}" @endif>
-                    {{ count($pointValues) > 1 ? '+'.$points : $team->sport->trans('goal_for_us') }}
-                </button>
-            @endforeach
-            @if ($sanctionKinds !== [])
+            @if ($scoring)
+                @foreach ($pointValues as $points)
+                    <button type="button" data-sm-goal-start data-sm-points="{{ $points }}" class="btn btn-success btn-lg flex-1 group-data-[sm-goal]:btn-disabled group-data-[sm-sanction]:btn-disabled"
+                            @if (count($pointValues) > 1) aria-label="{{ trans_choice('kopling-sports-management::messages.points_for_us', $points) }}" @endif>
+                        {{ count($pointValues) > 1 ? '+'.$points : $team->sport->trans('goal_for_us') }}
+                    </button>
+                @endforeach
+            @endif
+            @if ($sanctioning)
                 <form autocomplete="off" data-sm-sanction-form method="POST" hx-boost="true" class="hidden"
                       action="{{ route('kopling-sports-management::sports-management/matches.sanctions.store', [$team, $match]) }}">
                     @csrf

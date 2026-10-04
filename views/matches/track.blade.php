@@ -2,7 +2,9 @@
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
 @php
-    $canMove = $state === MatchState::Planned ? Gate::allows('kopling-sports-management::manage-matches') : $canTrack;
+    $canMove = $isCoach && ($state === MatchState::Planned ? Gate::allows('kopling-sports-management::manage-matches') : $canTrack);
+    $scoring = $canTrack && $duties['scoring'] && $state === MatchState::Live;
+    $sanctioning = $canTrack && $duties['sanctions'] && $state === MatchState::Live && $sanctionKinds !== [];
     $ticking = $running?->type === PeriodType::Play;
     $editable = $canMove;
     $playedRange = $state === MatchState::Planned ? null : $members->keys()->map(fn ($id) => $played[$id] ?? 0);

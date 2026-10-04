@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Kopling\SportsManagement;
 
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Kopling\Core\Database\Model;
+use Kopling\Core\People\Person;
 use Kopling\SportsManagement\Sport\SportConfig;
 
 class TeamMatch extends Model
@@ -24,6 +26,8 @@ class TeamMatch extends Model
         'format_preset_id',
         'play_minutes',
         'scheduled_at',
+        'referee_person_id',
+        'referee_duties',
     ];
 
     protected function casts(): array
@@ -32,6 +36,7 @@ class TeamMatch extends Model
             'home_away' => HomeAway::class,
             'scheduled_at' => 'datetime',
             'play_minutes' => 'integer',
+            'referee_duties' => AsEnumCollection::of(RefereeDuty::class),
         ];
     }
 
@@ -43,6 +48,46 @@ class TeamMatch extends Model
     public function formatPreset(): BelongsTo
     {
         return $this->belongsTo(TeamFormatPreset::class, 'format_preset_id');
+    }
+
+    public function referee(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'referee_person_id');
+    }
+
+    public function isRefereedBy(?Person $person): bool
+    {
+        return $person !== null
+            && $this->referee_person_id === $person->id
+            && $this->team->roleOf($person) === StaffRole::Referee;
+    }
+
+    public function delegates(RefereeDuty $duty): bool
+    {
+        return $this->referee_person_id !== null && ($this->referee_duties?->contains($duty) ?? false);
+    }
+
+    /**
+     * Delegated duties belong to the referee alone; the rest stay with the coaches.
+     */
+    public function handles(?Person $person, RefereeDuty $duty): bool
+    {
+        return $this->delegates($duty)
+            ? $this->isRefereedBy($person)
+            : $this->team->isCoachedBy($person);
+    }
+
+    public function isVisibleTo(?Person $person): bool
+    {
+        return $this->team->isCoachedBy($person) || $this->isRefereedBy($person);
+    }
+
+    /**
+     * @return array<string, bool> per duty value, whether `$person` handles it
+     */
+    public function dutiesOf(?Person $person): array
+    {
+        return collect(RefereeDuty::cases())->mapWithKeys(fn (RefereeDuty $duty) => [$duty->value => $this->handles($person, $duty)])->all();
     }
 
     public function availabilities(): HasMany

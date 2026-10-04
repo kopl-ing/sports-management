@@ -1,6 +1,10 @@
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
-@php($readOnly = ! $canTrack || $state === MatchState::Ended)
+@php
+    $timing = $canTrack && $duties['timing'];
+    $scoring = $canTrack && $duties['scoring'];
+    $readOnly = ! $timing || $state === MatchState::Ended;
+@endphp
 <div data-sm-controls hx-replace-url:inherited="true" @class(['w-full items-center gap-4', 'grid grid-cols-[1fr_auto_1fr]' => $readOnly, 'flex justify-between' => ! $readOnly])>
     @if ($readOnly)
     <div class="flex items-center justify-end gap-2">
@@ -20,7 +24,7 @@
 
     <div class="flex items-center gap-2">
         <span class="text-xl font-bold tabular-nums whitespace-nowrap">{{ $score['us'] }}&ndash;{{ $score['them'] }}</span>
-        @if ($canTrack && $state === MatchState::Live)
+        @if ($scoring && $state === MatchState::Live)
             @if (count($pointValues) === 1)
                 <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.goals.store', [$team, $match]) }}" hx-boost="true">
                     @csrf
@@ -50,7 +54,7 @@
     </div>
 
     <div class="flex items-center justify-between gap-4">
-        @if ($canTrack)
+        @if ($timing)
             @if ($state !== MatchState::Ended)
                 <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.start', [$team, $match]) }}" hx-boost="true">
                     @csrf

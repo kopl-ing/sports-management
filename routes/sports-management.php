@@ -9,7 +9,7 @@ use Kopling\SportsManagement\Controllers\TeamMembersController;
 use Kopling\SportsManagement\Controllers\TeamsController;
 use Kopling\SportsManagement\Controllers\TrackingController;
 
-// The Portal already gates on access-sports-management; every controller action also checks Team::isStaffedBy().
+// The Portal already gates on access-sports-management; every controller action also checks the team role (Team::roleOf(), TeamMatch::handles()).
 Route::get('/', [TeamsController::class, 'index'])->name('teams.index');
 Route::get('/sport-fields', [TeamsController::class, 'sportFields'])->name('teams.sport-fields');
 Route::get('/{team}', [TeamsController::class, 'show'])->name('teams.show');
@@ -30,6 +30,7 @@ Route::middleware('can:kopling-sports-management::manage-teams')->group(function
     Route::post('/{team}/invitations', [StaffController::class, 'invite'])->middleware('throttle:20,60,sm-invitations')->name('teams.invitations.store');
     Route::post('/{team}/invitations/{invitation}/delete', [StaffController::class, 'revoke'])->name('teams.invitations.destroy');
     Route::post('/{team}/staff/{person}/owner', [StaffController::class, 'makeOwner'])->name('teams.staff.owner');
+    Route::post('/{team}/staff/{person}/role', [StaffController::class, 'updateRole'])->name('teams.staff.role');
 
     Route::post('/{team}/members', [TeamMembersController::class, 'store'])->middleware('throttle:60,60,sm-members')->name('teams.members.store');
     Route::post('/{team}/members/{teamMember}', [TeamMembersController::class, 'update'])->name('teams.members.update');

@@ -20,8 +20,16 @@ class TeamInvitation extends Model
     protected $fillable = [
         'team_id',
         'email',
+        'role',
         'invited_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'role' => StaffRole::class,
+        ];
+    }
 
     public function team(): BelongsTo
     {

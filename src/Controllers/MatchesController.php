@@ -14,6 +14,7 @@ use Kopling\SportsManagement\AvailabilityStatus;
 use Kopling\SportsManagement\FieldMove;
 use Kopling\SportsManagement\HomeAway;
 use Kopling\SportsManagement\MatchLineup;
+use Kopling\SportsManagement\RefereeDuty;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamMatch;
 use Kopling\SportsManagement\TeamMember;
@@ -22,7 +23,7 @@ class MatchesController
 {
     public function store(Request $request, Team $team): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        $this->authorizeCoach($request, $team);
 
         $match = $team->matches()->create($this->validated($request, $team));
 
@@ -31,9 +32,11 @@ class MatchesController
 
     public function show(Request $request, Team $team, TeamMatch $teamMatch): View
     {
-        $this->authorizeMatch($request, $team, $teamMatch);
+        abort_unless($teamMatch->team_id === $team->id, 404);
+        $teamMatch->setRelation('team', $team);
+        abort_unless($teamMatch->isVisibleTo($request->user()), 403);
 
-        $team->load(['formatPreset', 'members.person']);
+        $team->load(['formatPreset', 'members.person', 'staff']);
         $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities']);
 
         return view('kopling-sports-management::matches.show', [
@@ -42,6 +45,7 @@ class MatchesController
             'timeline' => $teamMatch->timeline(),
             'members' => TeamMember::sorted($team->members),
             'availability' => $teamMatch->availabilities->pluck('status', 'team_member_id'),
+            'isCoach' => $team->isCoachedBy($request->user()),
         ]);
     }
 
@@ -120,14 +124,14 @@ class MatchesController
         return redirect()->route('kopling-sports-management::sports-management/matches.track', [$team, $teamMatch]);
     }
 
-    private function authorizeStaff(Request $request, Team $team): void
+    private function authorizeCoach(Request $request, Team $team): void
     {
-        abort_unless($team->isStaffedBy($request->user()), 403);
+        abort_unless($team->isCoachedBy($request->user()), 403);
     }
 
     private function authorizeMatch(Request $request, Team $team, TeamMatch $teamMatch): void
     {
-        $this->authorizeStaff($request, $team);
+        $this->authorizeCoach($request, $team);
         abort_unless($teamMatch->team_id === $team->id, 404);
     }
 
@@ -136,13 +140,21 @@ class MatchesController
      */
     private function validated(Request $request, Team $team): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'opponent_name' => ['required', 'string', 'max:255'],
             'home_away' => ['required', Rule::enum(HomeAway::class)],
             'location_address' => ['nullable', 'string', 'max:1000'],
             'format_preset_id' => ['nullable', 'uuid', Rule::exists('sm_team_format_presets', 'id')->where('sport', $team->sport->value)],
             'play_minutes' => ['nullable', 'integer', 'min:1', 'max:240'],
             'scheduled_at' => ['required', 'date'],
+            'referee_person_id' => ['nullable', 'uuid', Rule::in($team->referees()->pluck('people.id')->all())],
+            'referee_duties' => ['nullable', 'array', 'required_with:referee_person_id'],
+            'referee_duties.*' => [Rule::in(array_map(fn (RefereeDuty $duty) => $duty->value, RefereeDuty::for($team->sport)))],
         ]);
+
+        $data['referee_person_id'] ??= null;
+        $data['referee_duties'] = $data['referee_person_id'] === null ? null : array_values(array_unique($data['referee_duties']));
+
+        return $data;
     }
 }

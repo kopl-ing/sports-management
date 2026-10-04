@@ -1,7 +1,7 @@
 @extends('kopling-sports-management::layouts.sports-management')
 @php
     $reopening = old('_form');
-    $canManage = Gate::allows('kopling-sports-management::manage-matches');
+    $canManage = $isCoach && Gate::allows('kopling-sports-management::manage-matches');
     $preset = $match->effectiveFormatPreset();
     $availableCount = $availability->filter(fn ($status) => $status === \Kopling\SportsManagement\AvailabilityStatus::Available)->count();
     $statusBadge = [
@@ -71,6 +71,12 @@
                 @if ($match->location_address)
                     <p class="text-sm whitespace-pre-line mt-1">{{ $match->location_address }}</p>
                 @endif
+                @if ($match->referee)
+                    <p class="text-sm opacity-60 mt-1">{{ __('kopling-sports-management::messages.refereed_by', [
+                        'name' => $match->referee->name,
+                        'duties' => collect($match->referee_duties)->map(fn ($duty) => mb_strtolower($duty->label($team->sport)))->join(', '),
+                    ]) }}</p>
+                @endif
             </div>
             <div class="flex flex-wrap gap-2">
                 @if ($timeline->state() === \Kopling\SportsManagement\MatchState::Ended)
@@ -90,6 +96,7 @@
             </div>
         </div>
 
+        @if ($isCoach)
         <section class="flex flex-col gap-3">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.availability') }}</h2>
@@ -142,6 +149,7 @@
                 </form>
             @endif
         </section>
+        @endif
 
     </div>
 @endsection

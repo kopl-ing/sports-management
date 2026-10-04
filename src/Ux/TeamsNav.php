@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\Component;
 use Kopling\Core\Ux\Context;
 use Kopling\SportsManagement\MatchState;
+use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamMatch;
 
@@ -32,15 +33,20 @@ class TeamsNav extends Component
 
     public function render(): View
     {
+        $user = $this->request->user();
         $teams = Team::query()
-            ->whereHas('staff', fn ($query) => $query->whereKey($this->request->user()->id))
+            ->whereHas('staff', fn ($query) => $query->whereKey($user->id))
+            ->with(['staff' => fn ($query) => $query->whereKey($user->id)])
             ->orderBy('name')
             ->get();
+        [$coached, $refereed] = $teams->partition(fn (Team $team) => $team->staff->first()?->pivot->role === StaffRole::Coach->value);
 
         $matches = $teams->isEmpty() || $teams->count() > self::MATCHES_UP_TO_TEAMS
             ? collect()
             : TeamMatch::query()
-                ->whereIn('team_id', $teams->modelKeys())
+                ->where(fn ($query) => $query
+                    ->whereIn('team_id', $coached->modelKeys())
+                    ->orWhere(fn ($query) => $query->whereIn('team_id', $refereed->modelKeys())->where('referee_person_id', $user->id)))
                 ->where('scheduled_at', '>=', now()->startOfDay())
                 ->with(['team', 'periods'])
                 ->orderBy('scheduled_at')

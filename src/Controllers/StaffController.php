@@ -7,7 +7,9 @@ namespace Kopling\SportsManagement\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Kopling\Core\People\Person;
+use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamInvitation;
 
@@ -15,12 +17,19 @@ class StaffController
 {
     public function invite(Request $request, Team $team): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        $this->authorizeCoach($request, $team);
 
-        $email = Str::lower($request->validate(['email' => ['required', 'email', 'max:255']])['email']);
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'role' => ['sometimes', Rule::enum(StaffRole::class)],
+        ]);
+        $email = Str::lower($data['email']);
 
         if (! $team->staff()->whereRaw('lower(email) = ?', [$email])->exists()) {
-            $team->invitations()->firstOrCreate(['email' => $email], ['invited_by' => $request->user()->id]);
+            $team->invitations()->updateOrCreate(['email' => $email], [
+                'role' => $data['role'] ?? StaffRole::Coach->value,
+                'invited_by' => $request->user()->id,
+            ]);
         }
 
         return $this->toTeam($team)->with('status', __('kopling-sports-management::messages.invitation_sent', ['email' => $email]));
@@ -28,7 +37,7 @@ class StaffController
 
     public function revoke(Request $request, Team $team, TeamInvitation $invitation): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        $this->authorizeCoach($request, $team);
         abort_unless($invitation->team_id === $team->id, 404);
 
         $invitation->delete();
@@ -40,7 +49,7 @@ class StaffController
     {
         abort_unless($invitation->isFor($request->user()) && $invitation->team !== null, 404);
 
-        $invitation->team->staff()->syncWithoutDetaching([$request->user()->id]);
+        $invitation->team->staff()->syncWithoutDetaching([$request->user()->id => ['role' => $invitation->role->value]]);
         $invitation->delete();
 
         return $this->toTeam($invitation->team);
@@ -60,7 +69,7 @@ class StaffController
      */
     public function remove(Request $request, Team $team, Person $person): RedirectResponse
     {
-        $this->authorizeStaff($request, $team);
+        abort_unless($team->isStaffedBy($request->user()), 403);
         abort_unless($team->isStaffedBy($person), 404);
 
         $leaving = $request->user()->is($person);
@@ -74,6 +83,7 @@ class StaffController
         }
 
         $team->staff()->detach($person);
+        $this->unassignUpcoming($team, $person);
 
         return $leaving
             ? redirect()->route('kopling-sports-management::sports-management/teams.index')
@@ -83,16 +93,41 @@ class StaffController
     public function makeOwner(Request $request, Team $team, Person $person): RedirectResponse
     {
         abort_unless($team->isOwnedBy($request->user()), 403);
-        abort_unless($team->isStaffedBy($person), 404);
+        abort_unless($team->isCoachedBy($person), 404);
 
         $team->staff()->updateExistingPivot($person->id, ['owner' => true]);
 
         return $this->toTeam($team);
     }
 
-    private function authorizeStaff(Request $request, Team $team): void
+    /**
+     * Owners stay coaches; someone leaving the referee role is unassigned from upcoming matches, as on removal.
+     */
+    public function updateRole(Request $request, Team $team, Person $person): RedirectResponse
     {
-        abort_unless($team->isStaffedBy($request->user()), 403);
+        abort_unless($team->isOwnedBy($request->user()), 403);
+        abort_unless($team->isStaffedBy($person), 404);
+        abort_if($team->isOwnedBy($person), 403);
+
+        $role = StaffRole::from($request->validate(['role' => ['required', Rule::enum(StaffRole::class)]])['role']);
+
+        $team->staff()->updateExistingPivot($person->id, ['role' => $role->value]);
+        if ($role !== StaffRole::Referee) {
+            $this->unassignUpcoming($team, $person);
+        }
+
+        return $this->toTeam($team);
+    }
+
+    private function unassignUpcoming(Team $team, Person $person): void
+    {
+        $team->matches()->where('referee_person_id', $person->id)->where('scheduled_at', '>=', now()->startOfDay())
+            ->update(['referee_person_id' => null, 'referee_duties' => null]);
+    }
+
+    private function authorizeCoach(Request $request, Team $team): void
+    {
+        abort_unless($team->isCoachedBy($request->user()), 403);
     }
 
     private function toTeam(Team $team): RedirectResponse

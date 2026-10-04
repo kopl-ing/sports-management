@@ -39,7 +39,12 @@
                         @foreach ($invitations as $invitation)
                             <li class="list-row items-center">
                                 <div class="list-col-grow min-w-0">
-                                    <p class="font-semibold truncate">{{ $invitation->team->name }}</p>
+                                    <p class="font-semibold truncate">
+                                        {{ $invitation->team->name }}
+                                        @if ($invitation->role === \Kopling\SportsManagement\StaffRole::Referee)
+                                            <span class="badge badge-sm badge-outline">{{ $invitation->role->label() }}</span>
+                                        @endif
+                                    </p>
                                     <p class="text-sm opacity-60 truncate">{{ implode(' · ', array_filter([
                                         $invitation->team->club,
                                         $invitation->inviter ? __('kopling-sports-management::messages.invited_by', ['name' => $invitation->inviter->name]) : null,
