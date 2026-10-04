@@ -97,6 +97,7 @@ return [
     'delete_match' => 'Delete match',
     'confirm_delete_match' => 'Delete this match, including its lineup, availability, periods, goals and substitutions? This cannot be undone.',
     'back_to_team' => 'Back to :team',
+    'back_to_teams' => 'Back to all teams',
     'opponent' => 'Opponent',
     'home_away_label' => 'Home or away',
     'home_away' => [

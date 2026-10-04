@@ -90,6 +90,7 @@ return [
     'delete_match' => 'Wedstrijd verwijderen',
     'confirm_delete_match' => 'Deze wedstrijd verwijderen, inclusief opstelling, beschikbaarheid, periodes, doelpunten en wissels? Dit kan niet ongedaan worden gemaakt.',
     'back_to_team' => 'Terug naar :team',
+    'back_to_teams' => 'Terug naar alle teams',
     'opponent' => 'Tegenstander',
     'home_away_label' => 'Thuis of uit',
     'home_away' => [

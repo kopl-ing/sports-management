@@ -9,38 +9,43 @@
 
 @section('content')
     <div class="max-w-4xl flex flex-col gap-8">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold">{{ $team->name }}</h1>
-                <p class="text-sm opacity-60">{{ $team->subtitle() }}
-                    @if ($team->formatPreset)
-                        &middot; {{ $team->formatPreset->name }}
-                    @endif
-                </p>
-            </div>
+        <div class="flex flex-col gap-3">
+            <a href="{{ route('kopling-sports-management::sports-management/teams.index') }}" class="link link-hover text-sm opacity-60 self-start">
+                {{ __('kopling-sports-management::messages.back_to_teams') }}
+            </a>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold">{{ $team->name }}</h1>
+                    <p class="text-sm opacity-60">{{ $team->subtitle() }}
+                        @if ($team->formatPreset)
+                            &middot; {{ $team->formatPreset->name }}
+                        @endif
+                    </p>
+                </div>
 
-            @if ($canManageTeam)
-            <x-k::modal :label="__('kopling-sports-management::messages.edit_team')" id="modal-team-edit">
-                <x-slot:trigger>{{ __('kopling-sports-management::messages.edit_team') }}</x-slot:trigger>
-                <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.update', $team) }}" class="flex flex-col gap-4">
-                    @csrf
-                    <input type="hidden" name="_form" value="modal-team-edit">
-                    <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.edit_team') }}</h2>
-                    <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-sports-management::messages.name'), 'value' => $reopening === 'modal-team-edit' ? old('name') : $team->name, 'required' => true]" />
-                    <x-k::form.input :data="['name' => 'club', 'label' => __('kopling-sports-management::messages.club'), 'value' => $reopening === 'modal-team-edit' ? old('club') : $team->club]" />
-                    <x-k::form.input :data="['name' => 'season', 'label' => __('kopling-sports-management::messages.season'), 'value' => $reopening === 'modal-team-edit' ? old('season') : $team->season, 'required' => true]" />
-                    @include('kopling-sports-management::teams.sport-fields', [
-                        'sport' => $reopening === 'modal-team-edit' && ! $sportLocked ? (\Kopling\SportsManagement\Sport::tryFrom((string) old('sport')) ?? $team->sport) : $team->sport,
-                        'presetId' => (string) ($reopening === 'modal-team-edit' ? old('format_preset_id') : $team->format_preset_id),
-                        'sportEditable' => ! $sportLocked,
-                    ])
-                    @if ($reopening === 'modal-team-edit' && $errors->any())
-                        <p class="text-error text-sm">{{ $errors->first() }}</p>
-                    @endif
-                    <button type="submit" class="btn btn-primary self-start">{{ __('kopling-sports-management::messages.save') }}</button>
-                </form>
-            </x-k::modal>
-            @endif
+                @if ($canManageTeam)
+                <x-k::modal :label="__('kopling-sports-management::messages.edit_team')" id="modal-team-edit">
+                    <x-slot:trigger>{{ __('kopling-sports-management::messages.edit_team') }}</x-slot:trigger>
+                    <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.update', $team) }}" class="flex flex-col gap-4">
+                        @csrf
+                        <input type="hidden" name="_form" value="modal-team-edit">
+                        <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.edit_team') }}</h2>
+                        <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-sports-management::messages.name'), 'value' => $reopening === 'modal-team-edit' ? old('name') : $team->name, 'required' => true]" />
+                        <x-k::form.input :data="['name' => 'club', 'label' => __('kopling-sports-management::messages.club'), 'value' => $reopening === 'modal-team-edit' ? old('club') : $team->club]" />
+                        <x-k::form.input :data="['name' => 'season', 'label' => __('kopling-sports-management::messages.season'), 'value' => $reopening === 'modal-team-edit' ? old('season') : $team->season, 'required' => true]" />
+                        @include('kopling-sports-management::teams.sport-fields', [
+                            'sport' => $reopening === 'modal-team-edit' && ! $sportLocked ? (\Kopling\SportsManagement\Sport::tryFrom((string) old('sport')) ?? $team->sport) : $team->sport,
+                            'presetId' => (string) ($reopening === 'modal-team-edit' ? old('format_preset_id') : $team->format_preset_id),
+                            'sportEditable' => ! $sportLocked,
+                        ])
+                        @if ($reopening === 'modal-team-edit' && $errors->any())
+                            <p class="text-error text-sm">{{ $errors->first() }}</p>
+                        @endif
+                        <button type="submit" class="btn btn-primary self-start">{{ __('kopling-sports-management::messages.save') }}</button>
+                    </form>
+                </x-k::modal>
+                @endif
+            </div>
         </div>
 
         @if ($team->members->isNotEmpty() || $upcomingMatches->isNotEmpty() || $pastMatches->isNotEmpty())
