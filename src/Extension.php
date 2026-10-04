@@ -133,12 +133,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
         return [
             (new Model(Person::class))
                 ->authorize('view', fn ($viewer, Person $person) => ! TeamMember::where('person_id', $person->id)->exists())
-                ->deleting(fn (Person $person) => Team::withTrashed()
-                    ->whereHas('staff', fn ($query) => $query->whereKey($person->id))
-                    ->withCount('staff')
-                    ->get()
-                    ->where('staff_count', 1)
-                    ->each->forceDelete()),
+                ->observe(PersonObserver::class),
         ];
     }
 
