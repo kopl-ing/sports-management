@@ -53,7 +53,10 @@
             <div>
                 <h1 class="text-2xl font-bold">
                     {{ $match->opponent_name }}
-                    <span class="badge badge-outline align-middle">{{ $match->home_away->label() }}</span>
+                    <span class="badge badge-outline align-middle">
+                        <x-k::icon :name="'kopling-sports-management::'.$match->home_away->value" />
+                        {{ $match->home_away->label() }}
+                    </span>
                     @if ($timeline->state() !== \Kopling\SportsManagement\MatchState::Planned)
                         <span class="tabular-nums ms-2">{{ $timeline->score()['us'] }} &ndash; {{ $timeline->score()['them'] }}</span>
                     @endif

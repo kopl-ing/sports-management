@@ -30,15 +30,18 @@
                                    ? route('kopling-sports-management::sports-management/matches.report', [$team, $match])
                                    : route('kopling-sports-management::sports-management/matches.show', [$team, $match]) }}"
                                class="list-row flex items-center justify-between gap-2 hover:bg-base-200">
-                                <span>
-                                    <span class="font-semibold">{{ $match->opponent_name }}</span>
-                                    <span class="text-sm opacity-60">{{ $match->scheduled_at->translatedFormat('D j M Y, H:i') }}</span>
+                                <span class="min-w-0">
+                                    <span class="block font-semibold">{{ $match->opponent_name }}</span>
+                                    <span class="block text-sm opacity-60">{{ $match->scheduled_at->translatedFormat('D j M Y, H:i') }}</span>
                                 </span>
-                                <span class="flex items-center gap-2">
+                                <span class="flex shrink-0 items-center gap-2 whitespace-nowrap">
                                     @if ($match->periods->isNotEmpty())
                                         <span class="font-semibold tabular-nums">{{ $match->goals->where('opponent', false)->sum('points') }} &ndash; {{ $match->goals->where('opponent', true)->sum('points') }}</span>
                                     @endif
-                                    <span class="badge badge-outline">{{ $match->home_away->label() }}</span>
+                                    <span class="badge badge-outline" title="{{ $match->home_away->label() }}">
+                                        <x-k::icon :name="'kopling-sports-management::'.$match->home_away->value" />
+                                        <span class="sr-only sm:not-sr-only">{{ $match->home_away->label() }}</span>
+                                    </span>
                                 </span>
                             </a>
                         </li>

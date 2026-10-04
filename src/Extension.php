@@ -60,6 +60,8 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             new Icon(id: 'absent', label: 'Absent', default: 'fas-xmark'),
             new Icon(id: 'team', label: 'Team', default: 'fas-user-group'),
             new Icon(id: 'match', label: 'Match', default: 'fas-futbol'),
+            new Icon(id: 'home', label: 'Home match', default: 'fas-house'),
+            new Icon(id: 'away', label: 'Away match', default: 'fas-car-side'),
             new Icon(id: 'sports-management', label: 'Sports Management', default: 'fas-medal'),
         ];
     }
