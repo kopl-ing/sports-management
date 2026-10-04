@@ -14,7 +14,7 @@
     <h2 class="text-lg font-semibold">{{ $title }}</h2>
     <x-k::form.input :data="['name' => 'opponent_name', 'label' => __('kopling-sports-management::messages.opponent'), 'value' => $field('opponent_name', $match?->opponent_name)]" />
     <x-k::form.select :data="['name' => 'home_away', 'label' => __('kopling-sports-management::messages.home_away_label'), 'options' => $homeAwayOptions, 'value' => $field('home_away', $match?->home_away->value ?? 'home')]" />
-    <x-k::form.input :data="['name' => 'scheduled_at', 'label' => __('kopling-sports-management::messages.scheduled_at'), 'type' => 'datetime-local', 'value' => $field('scheduled_at', $match?->scheduled_at?->format('Y-m-d\TH:i'))]" />
+    <x-k::form.input :data="['name' => 'scheduled_at', 'label' => __('kopling-sports-management::messages.scheduled_at'), 'type' => 'datetime-local', 'value' => $field('scheduled_at', ($match?->scheduled_at ?? now()->next(\Carbon\CarbonInterface::SATURDAY)->setTime(8, 30))->format('Y-m-d\TH:i'))]" />
     <x-k::form.text-area :data="['name' => 'location_address', 'label' => __('kopling-sports-management::messages.location_address'), 'rows' => 2, 'value' => $field('location_address', $match?->location_address)]" />
     <x-k::form.select :data="['name' => 'format_preset_id', 'label' => __('kopling-sports-management::messages.format_preset'), 'options' => $presetOptions, 'value' => (string) $field('format_preset_id', $match?->format_preset_id)]" />
     <x-k::form.input :data="['name' => 'play_minutes', 'label' => __('kopling-sports-management::messages.play_minutes'), 'type' => 'number', 'description' => __('kopling-sports-management::messages.play_minutes_help'), 'value' => $field('play_minutes', $match?->play_minutes)]" />
