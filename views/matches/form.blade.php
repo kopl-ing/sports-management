@@ -19,5 +19,8 @@
     @if ($filled && $errors->any())
         <p class="text-error text-sm">{{ $errors->first() }}</p>
     @endif
-    <button type="submit" class="btn btn-primary self-start">{{ __('kopling-sports-management::messages.save') }}</button>
+    <div class="flex gap-2">
+        <button type="submit" class="btn btn-primary">{{ __('kopling-sports-management::messages.save') }}</button>
+        <x-k::modal.cancel />
+    </div>
 </form>
