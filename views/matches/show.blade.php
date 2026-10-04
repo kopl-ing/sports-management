@@ -23,32 +23,30 @@
                 <a href="{{ route('kopling-sports-management::sports-management/teams.show', $team) }}" class="link link-hover text-sm opacity-60 min-w-0 truncate">
                     {{ __('kopling-sports-management::messages.back_to_team', ['team' => $team->name]) }}
                 </a>
-                <div class="flex shrink-0 gap-2">
-                    @if ($timeline->state() === \Kopling\SportsManagement\MatchState::Ended)
-                        <a href="{{ route('kopling-sports-management::sports-management/matches.report', [$team, $match]) }}" class="btn btn-primary">
-                            {{ __('kopling-sports-management::messages.view_tracking') }}
-                        </a>
-                        @can('kopling-sports-management::track-matches')
-                            <a href="{{ route('kopling-sports-management::sports-management/matches.track', [$team, $match]) }}" class="btn">
-                                {{ __('kopling-sports-management::messages.track_match') }}
-                            </a>
-                        @endcan
-                    @else
-                        <a href="{{ route('kopling-sports-management::sports-management/matches.track', [$team, $match]) }}" class="btn btn-primary">
-                            {{ Gate::allows('kopling-sports-management::track-matches') ? __('kopling-sports-management::messages.track_match') : __('kopling-sports-management::messages.view_tracking') }}
-                        </a>
-                    @endif
-                    @if ($canManage)
-                        <x-k::modal :label="__('kopling-sports-management::messages.edit_match')" id="modal-match-edit">
-                            <x-slot:trigger class="btn">{{ __('kopling-sports-management::messages.edit_match') }}</x-slot:trigger>
-                            @include('kopling-sports-management::matches.form', [
-                                'action' => route('kopling-sports-management::sports-management/matches.update', [$team, $match]),
-                                'formId' => 'modal-match-edit',
-                                'title' => __('kopling-sports-management::messages.edit_match'),
-                            ])
-                        </x-k::modal>
-                    @endif
-                </div>
+                @if ($canManage)
+                    <x-k::dropdown :label="__('kopling-sports-management::messages.more_actions')">
+                        <x-slot:trigger>&vellip;</x-slot:trigger>
+                        <li>
+                            <button type="button" data-modal-show="modal-match-edit">{{ __('kopling-sports-management::messages.edit_match') }}</button>
+                        </li>
+                        <li>
+                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/matches.destroy', [$team, $match]) }}"
+                                  hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_match') }}">
+                                @csrf
+                                <button type="submit" class="w-full text-start text-error">{{ __('kopling-sports-management::messages.delete_match') }}</button>
+                            </form>
+                        </li>
+                    </x-k::dropdown>
+                    {{-- Outside the dropdown: a dialog inside a closed popover can't be shown. --}}
+                    <x-k::modal :label="__('kopling-sports-management::messages.edit_match')" id="modal-match-edit">
+                        <x-slot:trigger class="hidden"></x-slot:trigger>
+                        @include('kopling-sports-management::matches.form', [
+                            'action' => route('kopling-sports-management::sports-management/matches.update', [$team, $match]),
+                            'formId' => 'modal-match-edit',
+                            'title' => __('kopling-sports-management::messages.edit_match'),
+                        ])
+                    </x-k::modal>
+                @endif
             </div>
             <div>
                 <h1 class="text-2xl font-bold">
@@ -72,6 +70,22 @@
                 </p>
                 @if ($match->location_address)
                     <p class="text-sm whitespace-pre-line mt-1">{{ $match->location_address }}</p>
+                @endif
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @if ($timeline->state() === \Kopling\SportsManagement\MatchState::Ended)
+                    <a href="{{ route('kopling-sports-management::sports-management/matches.report', [$team, $match]) }}" class="btn btn-primary">
+                        {{ __('kopling-sports-management::messages.view_tracking') }}
+                    </a>
+                    @can('kopling-sports-management::track-matches')
+                        <a href="{{ route('kopling-sports-management::sports-management/matches.track', [$team, $match]) }}" class="btn">
+                            {{ __('kopling-sports-management::messages.track_match') }}
+                        </a>
+                    @endcan
+                @else
+                    <a href="{{ route('kopling-sports-management::sports-management/matches.track', [$team, $match]) }}" class="btn btn-primary">
+                        {{ Gate::allows('kopling-sports-management::track-matches') ? __('kopling-sports-management::messages.track_match') : __('kopling-sports-management::messages.view_tracking') }}
+                    </a>
                 @endif
             </div>
         </div>
@@ -129,12 +143,5 @@
             @endif
         </section>
 
-        @if ($canManage)
-            <form method="POST" action="{{ route('kopling-sports-management::sports-management/matches.destroy', [$team, $match]) }}"
-                  hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_match') }}" class="self-start">
-                @csrf
-                <button type="submit" class="btn btn-error btn-outline">{{ __('kopling-sports-management::messages.delete_match') }}</button>
-            </form>
-        @endif
     </div>
 @endsection
