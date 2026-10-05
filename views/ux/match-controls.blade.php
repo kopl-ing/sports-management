@@ -64,7 +64,7 @@
                         <button type="submit" data-sm-break-due="{{ $breakIn !== null && $breakIn <= 0 ? 'now' : '' }}"
                                 class="btn btn-sm gap-1.5 data-[sm-break-due=now]:btn-warning data-[sm-break-due=now]:animate-pulse"
                                 @if ($breakIn !== null && $breakIn > 0)
-                                    x-data x-init="setTimeout(() => { $el.dataset.smBreakDue = 'now'; navigator.vibrate?.([300, 150, 300]) }, {{ $breakIn * 1000 }})"
+                                    x-data x-init="setTimeout(() => { $el.dataset.smBreakDue = 'now'; kopling.alert() }, {{ $breakIn * 1000 }})"
                                 @endif
                                 aria-label="{{ __('kopling-sports-management::messages.break') }}" title="{{ __('kopling-sports-management::messages.break') }}">
                             <x-k::icon name="kopling-sports-management::pause" />

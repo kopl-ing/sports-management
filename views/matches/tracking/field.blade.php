@@ -6,7 +6,7 @@
         $benchMembers = $benchMembers->sortBy(fn ($member) => $played[$member->id] ?? 0);
     }
 @endphp
-<div data-sm-field @if ($canMove) data-sm-editable @endif @if ($state === MatchState::Live) data-sm-live @endif
+<div data-sm-field @if ($canMove) data-sm-editable @endif @if ($state === MatchState::Live) data-wake-lock @endif
      data-sm-max="{{ $maxOnField }}" data-sm-keeper="{{ $keeperZone?->value }}"
      class="group flex flex-col gap-2 h-[calc(100dvh-10rem)] min-h-[28rem]">
     @if ($canMove)
@@ -57,7 +57,7 @@
                  @if (array_key_exists($memberId, $penaltyLeft) && $ticking)
                      x-data x-init="setTimeout(() => {
                          $el.hidden = false;
-                         navigator.vibrate?.([300, 150, 300]);
+                         kopling.alert();
                          const field = $el.closest('[data-sm-field]');
                          field.dataset.smMax = Number(field.dataset.smMax) + 1;
                          field.querySelector('[data-sm-player=&quot;{{ $memberId }}&quot;]')?.removeAttribute('data-sm-unavailable');

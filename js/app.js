@@ -1,5 +1,5 @@
 // Match screen: drag (pointer events, so touch works) or tap-then-tap to move players, tap-to-score
-// goals, screen wake lock and tab memory. Delegated on `document`, so it survives boosted body swaps.
+// goals and tab memory. Delegated on `document`, so it survives boosted body swaps.
 const DRAG_THRESHOLD = 6;
 
 let press = null;
@@ -8,7 +8,6 @@ let selected = null;
 let over = null;
 let goalScorer = null;
 let sanctioned = null;
-let wakeLock = null;
 
 const editableField = (el) => el?.closest('[data-sm-field][data-sm-editable]');
 const onBench = (el) => el.closest('[data-sm-bench]') !== null;
@@ -327,7 +326,7 @@ document.addEventListener('change', (event) => {
     }
 });
 
-async function syncPage() {
+function syncPage() {
     const field = document.querySelector('[data-sm-field]');
     document.documentElement.style.overscrollBehaviorY = field ? 'none' : '';
 
@@ -338,21 +337,8 @@ async function syncPage() {
             input.checked = true;
         }
     } catch {}
-
-    const live = document.querySelector('[data-sm-field][data-sm-live]');
-    if (live && !wakeLock && 'wakeLock' in navigator && document.visibilityState === 'visible') {
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-            wakeLock.addEventListener('release', () => {
-                wakeLock = null;
-            });
-        } catch {}
-    } else if (!live && wakeLock) {
-        wakeLock.release();
-    }
 }
 
-document.addEventListener('visibilitychange', syncPage);
 document.addEventListener('htmx:after:settle', syncPage);
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', syncPage);
