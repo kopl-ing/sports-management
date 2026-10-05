@@ -92,6 +92,7 @@ class TrackingController
             'state' => $timeline->state(),
             'running' => $timeline->runningPeriod(),
             'played' => $timeline->playedSeconds(),
+            'positionSeconds' => $timeline->positionSeconds($teamMatch->sportConfig()->defaultZone()),
             'onField' => $timeline->onField(),
         ];
     }

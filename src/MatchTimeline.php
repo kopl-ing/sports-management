@@ -167,6 +167,23 @@ class MatchTimeline
     }
 
     /**
+     * @return array<string, array<string, int>> seconds played per zone value, keyed by team member id; no zone counts as `$default`
+     */
+    public function positionSeconds(Position $default): array
+    {
+        $seconds = [];
+
+        foreach ($this->replay()['positions'] as $memberId => $zones) {
+            foreach ($zones as $zone => $played) {
+                $zone = $zone === '' ? $default->value : $zone;
+                $seconds[$memberId][$zone] = ($seconds[$memberId][$zone] ?? 0) + $played;
+            }
+        }
+
+        return $seconds;
+    }
+
+    /**
      * @return array<string, Position|null> zone per team member id currently on the field
      */
     public function onField(): array
@@ -279,11 +296,12 @@ class MatchTimeline
     /**
      * Replays up to and including `$until` at `$untilOffset` when given, otherwise the whole match.
      *
-     * @return array{played: array<string, int>, onField: array<string, Position|null>}
+     * @return array{played: array<string, int>, positions: array<string, array<string, int>>, onField: array<string, Position|null>}
      */
     private function replay(?MatchPeriod $until = null, ?int $untilOffset = null): array
     {
         $played = [];
+        $positions = [];
         $onField = [];
         $substitutions = $this->substitutions->groupBy('period_id');
 
@@ -304,7 +322,7 @@ class MatchTimeline
 
                 if ($period->type === PeriodType::Play) {
                     $at = min($substitution->offset_seconds, $length);
-                    $this->credit($played, $onField, $at - $cursor);
+                    $this->credit($played, $positions, $onField, $at - $cursor);
                     $cursor = max($cursor, $at);
                 }
 
@@ -316,25 +334,27 @@ class MatchTimeline
             }
 
             if ($period->type === PeriodType::Play) {
-                $this->credit($played, $onField, $length - $cursor);
+                $this->credit($played, $positions, $onField, $length - $cursor);
             }
         }
 
-        return ['played' => $played, 'onField' => $onField];
+        return ['played' => $played, 'positions' => $positions, 'onField' => $onField];
     }
 
     /**
      * @param array<string, int> $played
+     * @param array<string, array<string, int>> $positions
      * @param array<string, Position|null> $onField
      */
-    private function credit(array &$played, array $onField, int $seconds): void
+    private function credit(array &$played, array &$positions, array $onField, int $seconds): void
     {
         if ($seconds <= 0) {
             return;
         }
 
-        foreach (array_keys($onField) as $memberId) {
+        foreach ($onField as $memberId => $zone) {
             $played[$memberId] = ($played[$memberId] ?? 0) + $seconds;
+            $positions[$memberId][$zone?->value ?? ''] = ($positions[$memberId][$zone?->value ?? ''] ?? 0) + $seconds;
         }
     }
 }

@@ -2,6 +2,7 @@
 @use('Kopling\SportsManagement\MatchSanction')
 @use('Kopling\SportsManagement\MatchState')
 @use('Kopling\SportsManagement\PeriodType')
+@use('Kopling\SportsManagement\Position')
 @use('Kopling\SportsManagement\SubstitutionDirection')
 @php
     $bench = $members->keys()->diff(array_keys($onField));
@@ -160,7 +161,18 @@
                     <li class="flex items-center gap-2 bg-base-100 border border-base-300 rounded-box px-3 py-1.5">
                         <span class="status {{ array_key_exists($member->id, $onField) ? 'status-success' : 'status-neutral' }}"
                               aria-label="{{ array_key_exists($member->id, $onField) ? $team->sport->trans('on_field') : __('kopling-sports-management::messages.bench') }}"></span>
-                        {{ $member->person->name }}
+                        <div class="flex flex-col gap-1">
+                            {{ $member->person->name }}
+                            @if ($positionSeconds[$member->id] ?? false)
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach (Position::cases() as $zone)
+                                        @if ($seconds = $positionSeconds[$member->id][$zone->value] ?? 0)
+                                            <span class="badge badge-sm badge-ghost">{{ $zone->label($team->sport) }} <span class="font-mono tabular-nums">{{ $clock($seconds) }}</span></span>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
                         <span class="ms-auto font-mono tabular-nums text-sm">{{ $clock($played[$member->id] ?? 0) }}</span>
                     </li>
                 @endforeach
