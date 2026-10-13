@@ -38,6 +38,7 @@
                             'presetId' => (string) ($reopening === 'modal-team-edit' ? old('format_preset_id') : $team->format_preset_id),
                             'sportEditable' => ! $sportLocked,
                         ])
+                        <x-k::form.toggle :data="['name' => 'public_matches', 'label' => __('kopling-sports-management::messages.public.team_default'), 'description' => __('kopling-sports-management::messages.public.team_default_help'), 'value' => $reopening === 'modal-team-edit' ? old('public_matches') : $team->public_matches]" />
                         @if ($reopening === 'modal-team-edit' && $errors->any())
                             <p class="text-error text-sm">{{ $errors->first() }}</p>
                         @endif

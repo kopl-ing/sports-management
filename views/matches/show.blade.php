@@ -78,6 +78,15 @@
                     ]) }}</p>
                 @endif
             </div>
+            @if ($isCoach && $match->publicUrl())
+                <div class="join w-full max-w-md" x-data="{ copied: false }">
+                    <input type="text" readonly value="{{ $match->publicUrl() }}" x-ref="url" x-on:focus="$el.select()"
+                           class="input join-item flex-1" aria-label="{{ __('kopling-sports-management::messages.public.link') }}">
+                    <button type="button" class="btn join-item"
+                            x-on:click="navigator.clipboard.writeText($refs.url.value).then(() => { copied = true; setTimeout(() => copied = false, 2000) })"
+                            x-text="copied ? @js(__('kopling-sports-management::messages.public.copied')) : @js(__('kopling-sports-management::messages.public.copy'))">{{ __('kopling-sports-management::messages.public.copy') }}</button>
+                </div>
+            @endif
             <div class="flex flex-wrap gap-2">
                 @if ($timeline->state() === \Kopling\SportsManagement\MatchState::Ended)
                     <a href="{{ route('kopling-sports-management::sports-management/matches.report', [$team, $match]) }}" class="btn btn-primary">

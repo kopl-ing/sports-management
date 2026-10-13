@@ -107,6 +107,12 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                 layout: 'kopling-sports-management::layouts.sports-management',
                 permission: 'access-sports-management',
             ),
+            new Portal(
+                id: 'live',
+                label: 'Live matches',
+                path: 'live',
+                layout: 'kopling-sports-management::layouts.live',
+            ),
         ];
     }
 
@@ -119,6 +125,8 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             (new PortalExtension('kopling-sports-management::sports-management'))
                 ->routes(__DIR__.'/../routes/sports-management.php')
                 ->js(__DIR__.'/../js/app.js'),
+            (new PortalExtension('kopling-sports-management::live'))
+                ->routes(__DIR__.'/../routes/live.php'),
             (new PortalExtension('kopling-moderation::moderation'))
                 ->routes(__DIR__.'/../routes/moderation.php'),
         ];

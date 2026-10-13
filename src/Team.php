@@ -29,12 +29,14 @@ class Team extends Model
         'club',
         'season',
         'format_preset_id',
+        'public_matches',
     ];
 
     protected function casts(): array
     {
         return [
             'sport' => Sport::class,
+            'public_matches' => 'boolean',
         ];
     }
 

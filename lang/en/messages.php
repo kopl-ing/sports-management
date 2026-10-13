@@ -31,6 +31,7 @@ return [
             'goal_opponent' => 'Score :opponent',
             'scorers' => 'Points and assists',
             'no_scorers' => 'No points or assists yet.',
+            'no_goals' => 'No points yet.',
             'recorded_goal' => 'Basket recorded.',
         ],
     ],
@@ -254,6 +255,17 @@ return [
     'assists_count' => ':count assist|:count assists',
     'events' => 'Events',
     'confirm_delete_event' => 'Delete this event?',
+    'no_goals' => 'No goals yet.',
+    'public' => [
+        'toggle' => 'Public match page',
+        'toggle_help' => 'Parents and guests can follow this match through a link, without signing in. Players show as initials only.',
+        'team_default' => 'Public match pages',
+        'team_default_help' => 'New matches get a public page for parents and guests. You can still switch it off per match.',
+        'link' => 'Link for parents',
+        'copy' => 'Copy',
+        'copied' => 'Copied',
+        'updates' => 'Updates automatically.',
+    ],
 
     'moderation' => [
         'title' => 'Sports Management',

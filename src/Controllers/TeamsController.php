@@ -100,6 +100,7 @@ class TeamsController
             'club' => ['nullable', 'string', 'max:255'],
             'season' => ['required', 'string', 'max:255'],
             'format_preset_id' => ['nullable', 'uuid', Rule::exists('sm_team_format_presets', 'id')->where('sport', $sport->value)],
+            'public_matches' => ['sometimes', 'boolean'],
         ]);
     }
 }

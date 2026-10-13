@@ -24,6 +24,7 @@ return [
             'tap_scorer' => 'Tik op de scorer',
             'scorers' => 'Punten en assists',
             'no_scorers' => 'Nog geen punten of assists.',
+            'no_goals' => 'Nog geen punten.',
             'recorded_goal' => 'Score vastgelegd.',
         ],
     ],
@@ -247,6 +248,17 @@ return [
     'assists_count' => ':count assist|:count assists',
     'events' => 'Gebeurtenissen',
     'confirm_delete_event' => 'Deze gebeurtenis verwijderen?',
+    'no_goals' => 'Nog geen doelpunten.',
+    'public' => [
+        'toggle' => 'Openbare wedstrijdpagina',
+        'toggle_help' => 'Ouders en gasten volgen deze wedstrijd via een link, zonder in te loggen. Spelers staan er alleen met initialen op.',
+        'team_default' => 'Openbare wedstrijdpagina\'s',
+        'team_default_help' => 'Nieuwe wedstrijden krijgen een openbare pagina voor ouders en gasten. Per wedstrijd kun je die nog uitzetten.',
+        'link' => 'Link voor ouders',
+        'copy' => 'Kopiëren',
+        'copied' => 'Gekopieerd',
+        'updates' => 'Werkt zichzelf bij.',
+    ],
 
     'moderation' => [
         'title' => 'Sportbeheer',

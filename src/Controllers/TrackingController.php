@@ -333,7 +333,7 @@ class TrackingController
         $data = $request->validate([
             ...$this->eventRules(),
             'opponent' => ['sometimes', 'boolean'],
-            'own_goal' => ['sometimes', 'exclude_if:opponent,1', 'boolean'],
+            'own_goal' => ['nullable', 'exclude_if:opponent,1', 'boolean'],
             'points' => ['sometimes', 'integer', Rule::in($teamMatch->sportConfig()->pointValues())],
             'scorer_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', $this->memberOf($team)],
             'assist_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', 'different:scorer_team_member_id', $this->memberOf($team)],

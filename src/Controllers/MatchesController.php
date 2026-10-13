@@ -25,7 +25,7 @@ class MatchesController
     {
         $this->authorizeCoach($request, $team);
 
-        $match = $team->matches()->create($this->validated($request, $team));
+        $match = $team->matches()->create($this->validated($request, $team) + ['public' => $team->public_matches]);
 
         return redirect()->route('kopling-sports-management::sports-management/matches.show', [$team, $match]);
     }
@@ -150,6 +150,7 @@ class MatchesController
             'referee_person_id' => ['nullable', 'uuid', Rule::in($team->referees()->pluck('people.id')->all())],
             'referee_duties' => ['nullable', 'array', 'required_with:referee_person_id'],
             'referee_duties.*' => [Rule::in(array_map(fn (RefereeDuty $duty) => $duty->value, RefereeDuty::for($team->sport)))],
+            'public' => ['sometimes', 'boolean'],
         ]);
 
         $data['referee_person_id'] ??= null;

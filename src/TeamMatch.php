@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 use Kopling\Core\Database\Model;
 use Kopling\Core\People\Person;
 use Kopling\SportsManagement\Sport\SportConfig;
@@ -28,6 +29,7 @@ class TeamMatch extends Model
         'scheduled_at',
         'referee_person_id',
         'referee_duties',
+        'public',
     ];
 
     protected function casts(): array
@@ -37,7 +39,28 @@ class TeamMatch extends Model
             'scheduled_at' => 'datetime',
             'play_minutes' => 'integer',
             'referee_duties' => AsEnumCollection::of(RefereeDuty::class),
+            'public' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Kept once made, so switching the page off and on again doesn't break links already shared.
+        static::saving(function (self $match) {
+            if ($match->public && $match->public_token === null) {
+                $match->public_token = Str::random(40);
+            }
+        });
+    }
+
+    public static function findPublic(string $token): ?self
+    {
+        return static::where('public', true)->where('public_token', $token)->whereHas('team')->first();
+    }
+
+    public function publicUrl(): ?string
+    {
+        return $this->public ? route('kopling-sports-management::live/match', $this->public_token) : null;
     }
 
     public function team(): BelongsTo
