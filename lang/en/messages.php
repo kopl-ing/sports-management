@@ -99,6 +99,7 @@ return [
     ],
     'guest' => 'Guest',
     'guest_short' => 'G',
+    'guests' => 'Guests',
     'player_count' => ':count player|:count players',
     'guest_count' => ':count guest|:count guests',
     'confirm_delete_member' => 'Remove this roster member? This cannot be undone.',

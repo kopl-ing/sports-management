@@ -95,9 +95,13 @@
                     @if ($team->members->isEmpty())
                         <p class="opacity-60">{{ __('kopling-sports-management::messages.no_members') }}</p>
                     @else
+                        @php $firstGuest = $team->members->first(fn ($member) => $member->guest); @endphp
                         <ul class="list">
                             @foreach ($team->members as $member)
                                 @php $modalId = 'modal-member-edit-'.$member->id; @endphp
+                                @if (! $loop->first && $member->is($firstGuest))
+                                    <li class="divider text-sm opacity-60">{{ __('kopling-sports-management::messages.guests') }}</li>
+                                @endif
                                 <li class="list-row items-center">
                                     <div class="list-col-grow min-w-0">
                                         <div class="truncate">

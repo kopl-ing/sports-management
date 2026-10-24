@@ -26,6 +26,10 @@ class MatchesController
         $this->authorizeCoach($request, $team);
 
         $match = $team->matches()->create($this->validated($request, $team) + ['public' => $team->public_matches]);
+        $match->availabilities()->createMany(
+            $team->members()->where('guest', true)->pluck('id')
+                ->map(fn (string $memberId) => ['team_member_id' => $memberId, 'status' => AvailabilityStatus::Absent]),
+        );
 
         return redirect()->route('kopling-sports-management::sports-management/matches.show', [$team, $match]);
     }

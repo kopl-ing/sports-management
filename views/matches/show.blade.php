@@ -121,9 +121,13 @@
             @else
                 <form method="POST" action="{{ route('kopling-sports-management::sports-management/matches.availability', [$team, $match]) }}" hx-boost="true" class="flex flex-col gap-3">
                     @csrf
+                    @php $firstGuest = $members->first(fn ($member) => $member->guest); @endphp
                     <ul class="flex flex-col gap-2">
                         @foreach ($members as $member)
                             @php $status = $availability->get($member->id); @endphp
+                            @if (! $loop->first && $member->is($firstGuest))
+                                <li class="divider my-0 text-sm opacity-60">{{ __('kopling-sports-management::messages.guests') }}</li>
+                            @endif
                             <li class="flex items-center justify-between gap-2 bg-base-100 border border-base-300 rounded-box px-4 py-2">
                                 <span class="min-w-0 truncate">
                                     @if ($member->jersey_number)

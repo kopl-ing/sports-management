@@ -264,8 +264,13 @@ class TeamMatch extends Model
 
     public function fairBenchSeconds(int $squadSize): ?int
     {
-        $fairShare = $this->fairShareSeconds($squadSize);
+        $minutes = $this->effectivePlayMinutes();
+        $onField = $this->effectiveFormatPreset()?->players_on_field;
 
-        return $fairShare === null ? null : $this->effectivePlayMinutes() * 60 - $fairShare;
+        if ($minutes === null || $onField === null || $squadSize === 0) {
+            return null;
+        }
+
+        return intdiv($minutes * max(0, $squadSize - $onField), $squadSize) * 60;
     }
 }

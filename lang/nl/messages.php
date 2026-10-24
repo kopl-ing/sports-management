@@ -92,6 +92,7 @@ return [
     ],
     'guest' => 'Gastspeler',
     'guest_short' => 'G',
+    'guests' => 'Gastspelers',
     'player_count' => ':count speler|:count spelers',
     'guest_count' => ':count gastspeler|:count gastspelers',
     'confirm_delete_member' => 'Deze speler uit de selectie halen? Dit kan niet ongedaan worden gemaakt.',
