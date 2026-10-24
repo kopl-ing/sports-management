@@ -8,10 +8,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\Sport;
 use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamInvitation;
+use Kopling\SportsManagement\TeamMatch;
 use Kopling\SportsManagement\TeamMember;
 
 class TeamsController
@@ -53,15 +55,18 @@ class TeamsController
 
         $team->load(['formatPreset', 'staff', 'members.person']);
         $team->setRelation('members', TeamMember::sorted($team->members));
-        $matches = fn () => $team->matches()
+        [$pastMatches, $upcomingMatches] = $team->matches()
             ->with(['periods', 'goals'])
-            ->when(! $isCoach, fn ($query) => $query->where('referee_person_id', $request->user()->id));
+            ->when(! $isCoach, fn ($query) => $query->where('referee_person_id', $request->user()->id))
+            ->orderBy('scheduled_at')
+            ->get()
+            ->partition(fn (TeamMatch $match) => $match->scheduled_at < now()->startOfDay() || MatchState::fromPeriods($match->periods) === MatchState::Ended);
 
         return view('kopling-sports-management::teams.show', [
             'team' => $team,
             'isCoach' => $isCoach,
-            'upcomingMatches' => $matches()->where('scheduled_at', '>=', now()->startOfDay())->orderBy('scheduled_at')->get(),
-            'pastMatches' => $matches()->where('scheduled_at', '<', now()->startOfDay())->orderByDesc('scheduled_at')->get(),
+            'upcomingMatches' => $upcomingMatches->values(),
+            'pastMatches' => $pastMatches->reverse()->values(),
             'invitations' => $team->invitations()->orderBy('email')->get(),
             'isOwner' => $team->isOwnedBy($request->user()),
             'sportLocked' => $team->matches()->exists(),

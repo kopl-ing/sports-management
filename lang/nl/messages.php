@@ -98,7 +98,7 @@ return [
     'confirm_delete_member' => 'Deze speler uit de selectie halen? Dit kan niet ongedaan worden gemaakt.',
 
     'matches' => 'Wedstrijden',
-    'upcoming_matches' => 'Komend',
+    'upcoming_matches' => 'Binnenkort',
     'past_matches' => 'Gespeeld',
     'no_matches' => 'Nog geen wedstrijden gepland.',
     'plan_match' => 'Wedstrijd plannen',
