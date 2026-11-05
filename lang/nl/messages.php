@@ -75,9 +75,9 @@ return [
     'delete_team' => 'Team verwijderen',
     'confirm_delete_team' => 'Dit team verwijderen, inclusief selectie en wedstrijden? Dit kan niet ongedaan worden gemaakt.',
 
-    'roster' => 'Selectie',
+    'roster' => 'Spelers',
     'add_member' => 'Speler toevoegen',
-    'no_members' => 'Nog geen spelers in de selectie.',
+    'no_members' => 'Nog geen spelers.',
     'jersey_number' => 'Rugnr.',
     'positions_label' => 'Posities',
     'positions' => [
@@ -95,7 +95,7 @@ return [
     'guests' => 'Gastspelers',
     'player_count' => ':count speler|:count spelers',
     'guest_count' => ':count gastspeler|:count gastspelers',
-    'confirm_delete_member' => 'Deze speler uit de selectie halen? Dit kan niet ongedaan worden gemaakt.',
+    'confirm_delete_member' => 'Deze speler uit het team halen? Dit kan niet ongedaan worden gemaakt.',
 
     'matches' => 'Wedstrijden',
     'upcoming_matches' => 'Binnenkort',
