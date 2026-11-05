@@ -69,6 +69,16 @@ class TeamMember extends Model
                 $member->person->delete();
             }
         });
+
+        static::saved(function (self $member) {
+            if ($member->guest && ($member->wasRecentlyCreated || $member->wasChanged('guest'))) {
+                TeamMatch::where('team_id', $member->team_id)->doesntHave('periods')->get()
+                    ->each(fn (TeamMatch $match) => $match->availabilities()->firstOrCreate(
+                        ['team_member_id' => $member->id],
+                        ['status' => AvailabilityStatus::Absent],
+                    ));
+            }
+        });
     }
 
     /** Permanent players before guests, each by name. */

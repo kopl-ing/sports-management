@@ -50,6 +50,19 @@
             </section>
         @endif
 
+        @if ($bench)
+            <section class="flex flex-col gap-2">
+                <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.bench') }}</h2>
+                <div class="card card-border bg-base-200">
+                    <div class="card-body flex-row flex-wrap items-center justify-center gap-4 p-3">
+                        @foreach ($bench as $player)
+                            <x-k::person.avatar :name="$player['initials']" :initials="$player['initials']" :color="$player['color']" :mask="null" size="w-12" />
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
         @if ($state !== MatchState::Planned)
             <section class="flex flex-col gap-2">
                 <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.events') }}</h2>

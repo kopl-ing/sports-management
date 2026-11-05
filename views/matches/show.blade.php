@@ -19,46 +19,46 @@
 @section('content')
     <div class="max-w-4xl flex flex-col gap-8">
         <div class="flex flex-col gap-3">
-            <div class="flex items-center justify-between gap-2">
-                <a href="{{ route('kopling-sports-management::sports-management/teams.show', $team) }}" class="link link-hover text-sm opacity-60 min-w-0 truncate">
-                    {{ __('kopling-sports-management::messages.back_to_team', ['team' => $team->name]) }}
-                </a>
-                @if ($canManage)
-                    <x-k::dropdown :label="__('kopling-sports-management::messages.more_actions')">
-                        <x-slot:trigger>&vellip;</x-slot:trigger>
-                        <li>
-                            <button type="button" data-modal-show="modal-match-edit">{{ __('kopling-sports-management::messages.edit_match') }}</button>
-                        </li>
-                        <li>
-                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/matches.destroy', [$team, $match]) }}"
-                                  hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_match') }}">
-                                @csrf
-                                <button type="submit" class="w-full text-start text-error">{{ __('kopling-sports-management::messages.delete_match') }}</button>
-                            </form>
-                        </li>
-                    </x-k::dropdown>
-                    {{-- Outside the dropdown: a dialog inside a closed popover can't be shown. --}}
-                    <x-k::modal :label="__('kopling-sports-management::messages.edit_match')" id="modal-match-edit">
-                        <x-slot:trigger class="hidden"></x-slot:trigger>
-                        @include('kopling-sports-management::matches.form', [
-                            'action' => route('kopling-sports-management::sports-management/matches.update', [$team, $match]),
-                            'formId' => 'modal-match-edit',
-                            'title' => __('kopling-sports-management::messages.edit_match'),
-                        ])
-                    </x-k::modal>
-                @endif
-            </div>
+            <a href="{{ route('kopling-sports-management::sports-management/teams.show', $team) }}" class="link link-hover text-sm opacity-60 self-start max-w-full truncate">
+                {{ __('kopling-sports-management::messages.back_to_team', ['team' => $team->name]) }}
+            </a>
             <div>
-                <h1 class="text-2xl font-bold">
-                    {{ $match->opponent_name }}
-                    <span class="badge badge-outline align-middle">
-                        <x-k::icon :name="'kopling-sports-management::'.$match->home_away->value" />
-                        {{ $match->home_away->label() }}
-                    </span>
-                    @if ($timeline->state() !== \Kopling\SportsManagement\MatchState::Planned)
-                        <span class="tabular-nums ms-2">{{ $timeline->score()['us'] }} &ndash; {{ $timeline->score()['them'] }}</span>
+                <div class="flex items-start justify-between gap-2">
+                    <h1 class="text-2xl font-bold">
+                        <span class="badge badge-outline align-middle me-2">
+                            <x-k::icon :name="'kopling-sports-management::'.$match->home_away->value" />
+                            {{ $match->home_away->label() }}
+                        </span>
+                        {{ $match->opponent_name }}
+                        @if ($timeline->state() !== \Kopling\SportsManagement\MatchState::Planned)
+                            <span class="tabular-nums ms-2">{{ $timeline->score()['us'] }} &ndash; {{ $timeline->score()['them'] }}</span>
+                        @endif
+                    </h1>
+                    @if ($canManage)
+                        <x-k::dropdown size="btn-md" class="shrink-0" :label="__('kopling-sports-management::messages.more_actions')">
+                            <x-slot:trigger>&vellip;</x-slot:trigger>
+                            <li>
+                                <button type="button" data-modal-show="modal-match-edit">{{ __('kopling-sports-management::messages.edit_match') }}</button>
+                            </li>
+                            <li>
+                                <form method="POST" action="{{ route('kopling-sports-management::sports-management/matches.destroy', [$team, $match]) }}"
+                                      hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_match') }}">
+                                    @csrf
+                                    <button type="submit" class="w-full text-start text-error">{{ __('kopling-sports-management::messages.delete_match') }}</button>
+                                </form>
+                            </li>
+                        </x-k::dropdown>
+                        {{-- Outside the dropdown: a dialog inside a closed popover can't be shown. --}}
+                        <x-k::modal :label="__('kopling-sports-management::messages.edit_match')" id="modal-match-edit">
+                            <x-slot:trigger class="hidden"></x-slot:trigger>
+                            @include('kopling-sports-management::matches.form', [
+                                'action' => route('kopling-sports-management::sports-management/matches.update', [$team, $match]),
+                                'formId' => 'modal-match-edit',
+                                'title' => __('kopling-sports-management::messages.edit_match'),
+                            ])
+                        </x-k::modal>
                     @endif
-                </h1>
+                </div>
                 <p class="text-sm opacity-60">
                     {{ $match->scheduled_at->translatedFormat('l j F Y, H:i') }}
                     @if ($preset)

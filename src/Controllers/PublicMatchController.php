@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\SportsManagement\Controllers;
 
 use Illuminate\Http\Response;
+use Kopling\SportsManagement\AvailabilityStatus;
 use Kopling\SportsManagement\FieldSlots;
 use Kopling\SportsManagement\MatchGoal;
 use Kopling\SportsManagement\MatchLineup;
@@ -25,7 +26,7 @@ class PublicMatchController
     {
         $match = TeamMatch::findPublic($token) ?? abort(404);
         $team = $match->team->load(['formatPreset', 'members.person']);
-        $match->setRelation('team', $team)->load(['formatPreset', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
+        $match->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
 
         $timeline = $match->timeline();
         $state = $timeline->state();
@@ -40,6 +41,12 @@ class PublicMatchController
             MatchState::Live => array_map(fn (?Position $zone) => $zone ?? $match->sportConfig()->defaultZone(), $timeline->onField()),
             MatchState::Ended => [],
         };
+        $involved = $match->lineup->pluck('team_member_id')->concat($match->substitutions->pluck('team_member_id'))->all();
+        $absent = array_diff($match->availabilities->where('status', AvailabilityStatus::Absent)->pluck('team_member_id')->all(), $involved);
+        $bench = TeamMember::sorted($team->members)
+            ->reject(fn (TeamMember $member) => array_key_exists($member->id, $placement) || in_array($member->id, $absent, true))
+            ->map(fn (TeamMember $member) => $players[$member->id])
+            ->all();
         $slots = FieldSlots::current($placement, $match->slotRows());
         $field = collect($match->sportConfig()->zones($match->effectiveFormatPreset()))
             ->map(fn (Position $zone) => [
@@ -87,6 +94,7 @@ class PublicMatchController
                     'ticking' => $running->type === PeriodType::Play,
                 ],
                 'field' => $state === MatchState::Ended || $placement === [] ? null : $field,
+                'bench' => $state === MatchState::Ended ? [] : $bench,
                 'goals' => $goals,
                 'multiplePoints' => count($match->sportConfig()->pointValues()) > 1,
                 'pollSeconds' => $state === MatchState::Ended ? null : self::POLL_SECONDS,
