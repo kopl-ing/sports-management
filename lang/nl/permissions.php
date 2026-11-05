@@ -3,11 +3,11 @@
 return [
     'access-sports-management' => [
         'label' => 'Toegang tot het teamportaal',
-        'description' => 'Het teamportaal bekijken -- teams, selecties, wedstrijdplanning en wedstrijden bijhouden.',
+        'description' => 'Het teamportaal bekijken -- teams, spelers, wedstrijdplanning en wedstrijden bijhouden.',
     ],
     'manage-teams' => [
         'label' => 'Teams beheren',
-        'description' => 'Teams aanmaken, en de selectie en staf beheren van elk team waar je bij hoort.',
+        'description' => 'Teams aanmaken, en de spelers en staf beheren van elk team waar je bij hoort.',
     ],
     'manage-matches' => [
         'label' => 'Wedstrijden beheren',

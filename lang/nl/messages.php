@@ -73,7 +73,7 @@ return [
     'refereed_by' => 'Spelbegeleider: :name (:duties)',
     'lineup_incomplete' => 'Maak eerst de basisopstelling compleet: vul elke positie, of zet iedereen die er is in het veld.',
     'delete_team' => 'Team verwijderen',
-    'confirm_delete_team' => 'Dit team verwijderen, inclusief selectie en wedstrijden? Dit kan niet ongedaan worden gemaakt.',
+    'confirm_delete_team' => 'Dit team verwijderen, inclusief spelers en wedstrijden? Dit kan niet ongedaan worden gemaakt.',
 
     'roster' => 'Spelers',
     'add_member' => 'Speler toevoegen',
@@ -264,14 +264,14 @@ return [
     'moderation' => [
         'title' => 'Sportbeheer',
         'team' => 'Team',
-        'overview_help' => 'Alleen teamgegevens. Namen uit de selectie en wedstrijden staan in de wachtrij zodra een team is gemeld.',
+        'overview_help' => 'Alleen teamgegevens. Namen van spelers en wedstrijden staan in de wachtrij zodra een team is gemeld.',
         'match_count' => ':count wedstrijd|:count wedstrijden',
         'created' => 'Aangemaakt :date',
         'confirm_hide' => 'Dit team verbergen? De staf heeft geen toegang meer tot het weer zichtbaar is.',
-        'confirm_delete' => 'Dit team, de selectie en wedstrijden definitief verwijderen?',
+        'confirm_delete' => 'Dit team, de spelers en wedstrijden definitief verwijderen?',
         'sort' => [
             'newest' => 'Nieuwste',
-            'roster' => 'Grootste selectie',
+            'roster' => 'Meeste spelers',
             'matches' => 'Meeste wedstrijden',
         ],
     ],
