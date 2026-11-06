@@ -87,7 +87,11 @@ class TeamsController
     {
         abort_unless($team->isCoachedBy($request->user()), 403);
 
-        $team->update($this->validated($request, $team));
+        $data = $this->validated($request, $team);
+        if (! $team->isOwnedBy($request->user())) {
+            unset($data['mcp_enabled']);
+        }
+        $team->update($data);
 
         return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
     }
@@ -120,6 +124,7 @@ class TeamsController
             'tasks_link_mode' => ['sometimes', Rule::enum(TaskLinkMode::class)],
             'tasks_balance_public' => ['sometimes', 'boolean'],
             'tasks_approve_completion' => ['sometimes', 'boolean'],
+            'mcp_enabled' => ['sometimes', 'boolean'],
         ]);
     }
 }

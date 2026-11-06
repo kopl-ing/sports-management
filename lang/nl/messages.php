@@ -285,6 +285,13 @@ return [
         'backfilled' => '{0} Niets terug te werken.|{1} 1 aanmelding telt nu vanaf de start van de periode.|[2,*] :count aanmeldingen tellen nu vanaf de start van de periode.',
     ],
 
+    'mcp' => [
+        'enabled' => 'AI-assistenten',
+        'enabled_help' => 'Staf van dit team mag een AI-assistent (zoals Claude) dit team laten inzien en plannen. Wat de assistent leest, ook namen van spelers, gaat naar de aanbieder die zij kozen. Sitebeheerders kunnen het team voor moderatie altijd bereiken; hun acties zie je hieronder.',
+        'read_scope' => 'Je teams, wedstrijden, taken en de verdeling zien',
+        'write_scope' => 'Wedstrijden plannen, spelers en taken aanpassen en mensen indelen',
+    ],
+
     'tasks' => [
         'heading' => 'Taken',
         'add' => 'Taak toevoegen',

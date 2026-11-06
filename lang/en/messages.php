@@ -292,6 +292,13 @@ return [
         'backfilled' => '{0} No sign-ups needed backfilling.|{1} 1 sign-up now counts from the start of the period.|[2,*] :count sign-ups now count from the start of the period.',
     ],
 
+    'mcp' => [
+        'enabled' => 'AI assistants',
+        'enabled_help' => 'Staff of this team may let an AI assistant (such as Claude) read and plan this team for them. What the assistant reads, including player names, goes to the provider they chose. Site admins can always reach the team for moderation; you see their actions below.',
+        'read_scope' => 'See your teams, matches, tasks and the task balance',
+        'write_scope' => 'Plan matches, change the roster and tasks, and assign people',
+    ],
+
     'tasks' => [
         'heading' => 'Tasks',
         'add' => 'Add task',

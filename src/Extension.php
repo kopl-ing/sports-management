@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\SportsManagement;
 
 use Kopling\Core\Extend\Icon;
+use Kopling\Core\Extend\Mcp\Toolset;
 use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\ModerationTarget;
 use Kopling\Core\Extend\Permission;
@@ -16,6 +17,7 @@ use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasIcons;
+use Kopling\Core\Extension\Contract\HasMcpTools;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RegistersModerationTargets;
@@ -32,9 +34,12 @@ use Kopling\SportsManagement\Ux\MatchControls;
 use Kopling\SportsManagement\Ux\ModerationNav;
 use Kopling\SportsManagement\Ux\TeamsNav;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, HasIcons, HasPermissions, HasPortals, RegistersModerationTargets
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, HasIcons, HasMcpTools, HasPermissions, HasPortals, RegistersModerationTargets
 {
     public const TEAM_CONTROL_SLOT = 'kopling-sports-management::team.control';
+
+    /** Rendered on the team page for its owner only. */
+    public const TEAM_OWNER_SLOT = 'kopling-sports-management::team.owner';
 
     public static function name(): string
     {
@@ -83,6 +88,11 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                 id: 'manage-matches',
                 label: __('kopling-sports-management::permissions.manage-matches.label'),
                 description: __('kopling-sports-management::permissions.manage-matches.description'),
+            ),
+            new Permission(
+                id: 'administer-teams',
+                label: __('kopling-sports-management::permissions.administer-teams.label'),
+                description: __('kopling-sports-management::permissions.administer-teams.description'),
             ),
             new Permission(
                 id: 'track-matches',
@@ -187,6 +197,12 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             ->in('kopling-moderation::moderation.sidebar-panel')
             ->as('moderation-nav');
 
+        if (class_exists(\Kopling\Mcp\Ux\TeamCalls::class)) {
+            $ux->add(\Kopling\Mcp\Ux\TeamCalls::class)
+                ->in(self::TEAM_OWNER_SLOT)
+                ->as('assistant-activity');
+        }
+
         if (class_exists(\Kopling\Moderation\Ux\ReportControlEntry::class)) {
             $ux->add(\Kopling\Moderation\Ux\ReportControlEntry::class)
                 ->in(self::TEAM_CONTROL_SLOT)
@@ -194,6 +210,43 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
         }
 
         return $ux;
+    }
+
+    /**
+     * Served by `kopling/mcp` when installed; each team opts in (`sm_teams.mcp_enabled`), site admins reach every team (`Mcp\TeamAccess`).
+     *
+     * @return array<Toolset>
+     */
+    public function mcpTools(): array
+    {
+        return [
+            (new Toolset('teams'))
+                ->label('Teams')
+                ->scope('read', __('kopling-sports-management::messages.mcp.read_scope'), [
+                    Mcp\Tools\ListMyTeams::class,
+                    Mcp\Tools\GetTeam::class,
+                    Mcp\Tools\ListMatches::class,
+                    Mcp\Tools\GetMatch::class,
+                    Mcp\Tools\ListTasks::class,
+                    Mcp\Tools\TaskPlanning::class,
+                    Mcp\Tools\TaskBalance::class,
+                    Mcp\Tools\ListAllTeams::class,
+                    Mcp\Tools\TeamStats::class,
+                ])
+                ->scope('write', __('kopling-sports-management::messages.mcp.write_scope'), [
+                    Mcp\Tools\PlanMatch::class,
+                    Mcp\Tools\UpdateMatch::class,
+                    Mcp\Tools\CancelMatch::class,
+                    Mcp\Tools\SetAvailability::class,
+                    Mcp\Tools\AddPlayer::class,
+                    Mcp\Tools\UpdatePlayer::class,
+                    Mcp\Tools\CreateTask::class,
+                    Mcp\Tools\UpdateTask::class,
+                    Mcp\Tools\AssignTask::class,
+                    Mcp\Tools\UnassignTask::class,
+                    Mcp\Tools\RecordOutcome::class,
+                ]),
+        ];
     }
 
     /**

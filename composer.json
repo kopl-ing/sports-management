@@ -11,6 +11,9 @@
     ],
     "require": {
     },
+    "suggest": {
+        "kopling/mcp": "Lets staff work with their teams through an AI assistant."
+    },
     "autoload": {
         "psr-4": {
             "Kopling\\SportsManagement\\": "src/"

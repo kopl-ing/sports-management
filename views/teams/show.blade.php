@@ -45,6 +45,9 @@
                         <x-k::form.toggle :data="['name' => 'tasks_balance_public', 'label' => __('kopling-sports-management::messages.tasks.balance_public'), 'description' => __('kopling-sports-management::messages.tasks.balance_public_help'), 'value' => $reopening === 'modal-team-edit' ? old('tasks_balance_public') : $team->tasks_balance_public]" />
                         <x-k::form.toggle :data="['name' => 'tasks_approve_completion', 'label' => __('kopling-sports-management::messages.tasks.approve_completion'), 'description' => __('kopling-sports-management::messages.tasks.approve_completion_help'), 'value' => $reopening === 'modal-team-edit' ? old('tasks_approve_completion') : $team->tasks_approve_completion]" />
                         <x-k::form.select :data="['name' => 'tasks_link_mode', 'label' => __('kopling-sports-management::messages.tasks.link_mode_label'), 'options' => \Kopling\SportsManagement\TaskLinkMode::options(), 'description' => __('kopling-sports-management::messages.tasks.link_mode_help'), 'value' => (string) ($reopening === 'modal-team-edit' ? old('tasks_link_mode') : $team->tasks_link_mode->value)]" />
+                        @if ($isOwner && class_exists(\Kopling\Mcp\Tool::class))
+                            <x-k::form.toggle :data="['name' => 'mcp_enabled', 'label' => __('kopling-sports-management::messages.mcp.enabled'), 'description' => __('kopling-sports-management::messages.mcp.enabled_help'), 'value' => $reopening === 'modal-team-edit' ? old('mcp_enabled') : $team->mcp_enabled]" />
+                        @endif
                         @if ($reopening === 'modal-team-edit' && $errors->any())
                             <p class="text-error text-sm">{{ $errors->first() }}</p>
                         @endif
@@ -285,5 +288,9 @@
             @endif
             <x-k::portal.slot :name="\Kopling\SportsManagement\Extension::TEAM_CONTROL_SLOT" :context="new \Kopling\Core\Ux\Context(subject: $team)" />
         </div>
+
+        @if ($isOwner)
+            <x-k::portal.slot :name="\Kopling\SportsManagement\Extension::TEAM_OWNER_SLOT" :context="new \Kopling\Core\Ux\Context(subject: $team)" />
+        @endif
     </div>
 @endsection

@@ -37,6 +37,7 @@ class Team extends Model
         'tasks_link_mode',
         'tasks_balance_public',
         'tasks_approve_completion',
+        'mcp_enabled',
     ];
 
     protected function casts(): array
@@ -48,6 +49,7 @@ class Team extends Model
             'tasks_link_mode' => TaskLinkMode::class,
             'tasks_balance_public' => 'boolean',
             'tasks_approve_completion' => 'boolean',
+            'mcp_enabled' => 'boolean',
         ];
     }
 

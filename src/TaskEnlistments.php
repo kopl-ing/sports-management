@@ -163,6 +163,20 @@ class TaskEnlistments
     }
 
     /**
+     * Staff marking a passed date done or a no-show; only for a team that confirms completion.
+     */
+    public static function recordOutcome(TaskEnlistment $enlistment, TaskOccurrence $occurrence, TaskOutcome $outcome, Person $by): void
+    {
+        abort_unless($enlistment->task->team->tasks_approve_completion, 404);
+        abort_unless($occurrence->cancelled_at === null && $enlistment->covers($occurrence) && $occurrence->hasPassed(), 404);
+
+        $enlistment->outcomes()->updateOrCreate(
+            ['occurrence_id' => $occurrence->id],
+            ['outcome' => $outcome, 'confirmed_by' => $by->id],
+        );
+    }
+
+    /**
      * Takes the regular person of a season-long sign-up off one date; through the link only within the undo window.
      */
     public static function skip(TaskEnlistment $enlistment, TaskOccurrence $occurrence, ?Person $by = null): void
