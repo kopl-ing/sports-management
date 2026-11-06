@@ -296,7 +296,7 @@ return [
         'enabled' => 'AI assistants',
         'enabled_help' => 'Staff of this team may let an AI assistant (such as Claude) read and plan this team for them. What the assistant reads, including player names, goes to the provider they chose. Site admins can always reach the team for moderation; you see their actions below.',
         'read_scope' => 'See your teams, matches, tasks and the task balance',
-        'write_scope' => 'Plan matches, change the roster and tasks, and assign people',
+        'write_scope' => 'Plan matches, keep score and substitutions during a match, change the roster and tasks, and assign people',
     ],
 
     'tasks' => [

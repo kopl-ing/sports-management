@@ -7,13 +7,11 @@ namespace Kopling\SportsManagement\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\ValidationException;
+use Kopling\SportsManagement\Actions\TrackMatch;
 use Kopling\SportsManagement\AvailabilityStatus;
-use Kopling\SportsManagement\FieldMove;
 use Kopling\SportsManagement\FieldSlots;
 use Kopling\SportsManagement\MatchGoal;
 use Kopling\SportsManagement\MatchLineup;
@@ -22,10 +20,8 @@ use Kopling\SportsManagement\MatchSanction;
 use Kopling\SportsManagement\MatchSubstitution;
 use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\PeriodType;
-use Kopling\SportsManagement\SanctionKind;
 use Kopling\SportsManagement\Position;
 use Kopling\SportsManagement\RefereeDuty;
-use Kopling\SportsManagement\SubstitutionDirection;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamMatch;
 use Kopling\SportsManagement\TeamMember;
@@ -35,8 +31,6 @@ class TrackingController
     public const UNDO_SECONDS = 10;
 
     private const UNDO_GRACE_SECONDS = 60;
-
-    private const REPEAT_SECONDS = 5;
 
     public function show(Request $request, Team $team, TeamMatch $teamMatch): View
     {
@@ -97,45 +91,11 @@ class TrackingController
         ];
     }
 
-    /**
-     * Starting a period live ends whichever period is still running.
-     */
     public function startPeriod(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
         $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Timing);
 
-        $data = $request->validate([
-            'type' => ['required', Rule::enum(PeriodType::class)],
-        ]);
-
-        $latest = $teamMatch->periods->last();
-        if ($latest?->type->value === $data['type'] && $latest->started_at?->diffInSeconds(now()) < self::REPEAT_SECONDS) {
-            return $this->backToTracking($team, $teamMatch);
-        }
-
-        if ($teamMatch->periods->isEmpty() && ! $this->lineupComplete($team, $teamMatch)) {
-            throw ValidationException::withMessages([
-                'lineup' => __('kopling-sports-management::messages.lineup_incomplete'),
-            ]);
-        }
-
-        DB::transaction(function () use ($teamMatch, $data) {
-            $timeline = $teamMatch->timeline();
-            $first = $teamMatch->periods->isEmpty();
-
-            if ($running = $timeline->runningPeriod()) {
-                $running->update(['duration_seconds' => $timeline->length($running)]);
-            }
-
-            $period = $this->createPeriod($teamMatch, [
-                'type' => $data['type'],
-                'started_at' => now(),
-            ]);
-
-            if ($first) {
-                $this->addStarters($teamMatch, $period);
-            }
-        });
+        TrackMatch::startPeriod($teamMatch, $request->all());
 
         return $this->backToTracking($team, $teamMatch);
     }
@@ -144,9 +104,7 @@ class TrackingController
     {
         $this->authorizePeriod($request, $team, $teamMatch, $period);
 
-        if ($period->isRunning()) {
-            $period->update(['duration_seconds' => $teamMatch->timeline()->length($period)]);
-        }
+        TrackMatch::endPeriod($teamMatch, $period);
 
         return $this->backToTracking($team, $teamMatch);
     }
@@ -155,22 +113,7 @@ class TrackingController
     {
         $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Timing);
 
-        $data = $request->validate([
-            'type' => ['required', Rule::enum(PeriodType::class)],
-            'duration_minutes' => ['required', 'integer', 'min:0', 'max:240'],
-        ]);
-
-        DB::transaction(function () use ($teamMatch, $data) {
-            $first = $teamMatch->periods()->doesntExist();
-            $period = $this->createPeriod($teamMatch, [
-                'type' => $data['type'],
-                'duration_seconds' => $data['duration_minutes'] * 60,
-            ]);
-
-            if ($first) {
-                $this->addStarters($teamMatch, $period);
-            }
-        });
+        TrackMatch::addPeriod($teamMatch, $request->all());
 
         return $this->backToTracking($team, $teamMatch);
     }
@@ -207,74 +150,20 @@ class TrackingController
         return $this->backToTracking($team, $teamMatch);
     }
 
-    /**
-     * Either side may be left empty: a starter coming on, or a player leaving without replacement.
-     */
     public function storeSubstitution(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
         $this->authorizeCoach($request, $team, $teamMatch);
 
-        $data = $request->validate([
-            ...$this->eventRules(),
-            'off_team_member_id' => ['nullable', 'required_without:on_team_member_id', 'different:on_team_member_id', $this->memberOf($team)],
-            'on_team_member_id' => ['nullable', $this->memberOf($team)],
-            'zone' => ['nullable', 'required_with:on_team_member_id', Rule::enum(Position::class)->only($teamMatch->sportConfig()->zones($teamMatch->effectiveFormatPreset()))],
-        ]);
-
-        [$period, $offset] = $this->moment($teamMatch, $data['minute'] ?? null);
-
-        $created = DB::transaction(function () use ($teamMatch, $period, $offset, $data) {
-            $ids = [];
-            foreach ([SubstitutionDirection::Off->value => $data['off_team_member_id'] ?? null, SubstitutionDirection::On->value => $data['on_team_member_id'] ?? null] as $direction => $memberId) {
-                if ($memberId !== null) {
-                    $ids[] = $teamMatch->substitutions()->create([
-                        'period_id' => $period->id,
-                        'team_member_id' => $memberId,
-                        'direction' => $direction,
-                        'zone' => $direction === SubstitutionDirection::On->value ? $data['zone'] : null,
-                        'offset_seconds' => $offset,
-                    ])->id;
-                }
-            }
-
-            return $ids;
-        });
-
-        $this->rememberUndo($teamMatch, substitutions: $created);
+        $this->rememberUndo($teamMatch, substitutions: TrackMatch::substitute($teamMatch, $request->all()));
 
         return $this->backToTracking($team, $teamMatch);
     }
 
-    /**
-     * Applies at "now" in the running period, or at the end of the last one when none is running.
-     */
     public function moveOnField(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
         $this->authorizeCoach($request, $team, $teamMatch);
 
-        $data = $request->validate(FieldMove::rules($team, $teamMatch));
-        $timeline = $teamMatch->timeline();
-        $period = $timeline->runningPeriod() ?? $timeline->periods()->last();
-        abort_if($period === null, 409);
-        $offset = $timeline->length($period);
-
-        $changes = FieldMove::fromRequest($data, $timeline->onField());
-        if ($error = FieldMove::limitError($timeline->onField(), $changes, $teamMatch->effectiveMaxOnField($timeline), $teamMatch->sportConfig()->keeperZone($teamMatch->effectiveFormatPreset()), $teamMatch->unavailableMemberIds($timeline))) {
-            throw ValidationException::withMessages(['zone' => $error]);
-        }
-
-        $created = DB::transaction(function () use ($teamMatch, $timeline, $changes, $period, $offset, $data) {
-            $teamMatch->rememberSlots(array_map(fn (?Position $zone) => $zone ?? $teamMatch->sportConfig()->defaultZone(), $timeline->onField()), $data);
-
-            return collect($changes)->map(fn (?Position $zone, string $memberId) => $teamMatch->substitutions()->create([
-                'period_id' => $period->id,
-                'team_member_id' => $memberId,
-                'direction' => $zone === null ? SubstitutionDirection::Off : SubstitutionDirection::On,
-                'zone' => $zone,
-                'offset_seconds' => $offset,
-            ])->id)->values()->all();
-        });
-
+        $created = TrackMatch::moveOnField($teamMatch, $request->all());
         if ($created !== []) {
             $this->rememberUndo($teamMatch, substitutions: $created);
         }
@@ -330,40 +219,9 @@ class TrackingController
     {
         $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Scoring);
 
-        $data = $request->validate([
-            ...$this->eventRules(),
-            'opponent' => ['sometimes', 'boolean'],
-            'own_goal' => ['nullable', 'exclude_if:opponent,1', 'boolean'],
-            'points' => ['sometimes', 'integer', Rule::in($teamMatch->sportConfig()->pointValues())],
-            'scorer_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', $this->memberOf($team)],
-            'assist_team_member_id' => ['nullable', 'prohibited_if:opponent,1', 'prohibited_if:own_goal,1', 'different:scorer_team_member_id', $this->memberOf($team)],
-        ]);
-
-        [$period, $offset] = $this->moment($teamMatch, $data['minute'] ?? null);
-
-        $repeat = ($data['minute'] ?? null) === null && $teamMatch->goals()
-            ->where('created_at', '>=', now()->subSeconds(self::REPEAT_SECONDS))
-            ->where('opponent', (bool) ($data['opponent'] ?? false))
-            ->where('own_goal', (bool) ($data['own_goal'] ?? false))
-            ->where('points', (int) ($data['points'] ?? 1))
-            ->where('scorer_team_member_id', $data['scorer_team_member_id'] ?? null)
-            ->where('assist_team_member_id', $data['assist_team_member_id'] ?? null)
-            ->exists();
-        if ($repeat) {
-            return $this->backToTracking($team, $teamMatch);
+        if ($goal = TrackMatch::recordGoal($teamMatch, $request->all())) {
+            $this->rememberUndo($teamMatch, goals: [$goal->id]);
         }
-
-        $goal = $teamMatch->goals()->create([
-            'period_id' => $period->id,
-            'opponent' => $data['opponent'] ?? false,
-            'own_goal' => $data['own_goal'] ?? false,
-            'points' => $data['points'] ?? 1,
-            'scorer_team_member_id' => $data['scorer_team_member_id'] ?? null,
-            'assist_team_member_id' => $data['assist_team_member_id'] ?? null,
-            'offset_seconds' => $offset,
-        ]);
-
-        $this->rememberUndo($teamMatch, goals: [$goal->id]);
 
         return $this->backToTracking($team, $teamMatch);
     }
@@ -378,53 +236,12 @@ class TrackingController
         return $this->backToTracking($team, $teamMatch);
     }
 
-    /**
-     * A sanction that rules the player out takes them off the field at that moment, linked so deleting it puts them back.
-     */
     public function storeSanction(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
     {
         $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Sanctions);
 
-        $config = $teamMatch->sportConfig();
-        $preset = $teamMatch->effectiveFormatPreset();
-        $data = $request->validate([
-            ...$this->eventRules(),
-            'team_member_id' => ['required', 'uuid', $this->memberOf($team)],
-            'kind' => ['required', Rule::in(array_map(fn (SanctionKind $kind) => $kind->value, $config->sanctions()))],
-        ]);
-
-        [$period, $offset] = $this->moment($teamMatch, $data['minute'] ?? null);
-        $kind = SanctionKind::from($data['kind']);
-        $memberId = $data['team_member_id'];
-        $timeline = $teamMatch->timeline();
-        $minutes = $kind->durationRule() === null ? null : $config->rule($preset, $kind->durationRule());
-        $limit = $kind->limitRule() === null ? null : $config->rule($preset, $kind->limitRule());
-        $count = ($timeline->sanctionCounts()[$memberId][$kind->value] ?? 0) + 1;
-        $removes = $kind->shortensTeam() || ($limit !== null && $count >= $limit);
-
-        [$sanctionId, $substitutionId] = DB::transaction(function () use ($teamMatch, $timeline, $period, $offset, $kind, $memberId, $minutes, $removes) {
-            $substitution = $removes && array_key_exists($memberId, $timeline->onFieldAt($period, $offset))
-                ? $teamMatch->substitutions()->create([
-                    'period_id' => $period->id,
-                    'team_member_id' => $memberId,
-                    'direction' => SubstitutionDirection::Off,
-                    'offset_seconds' => $offset,
-                ])
-                : null;
-
-            $sanction = $teamMatch->sanctions()->create([
-                'period_id' => $period->id,
-                'team_member_id' => $memberId,
-                'kind' => $kind,
-                'offset_seconds' => $offset,
-                'duration_seconds' => $minutes === null ? null : $minutes * 60,
-                'substitution_id' => $substitution?->id,
-            ]);
-
-            return [$sanction->id, $substitution?->id];
-        });
-
-        $this->rememberUndo($teamMatch, substitutions: array_filter([$substitutionId]), sanctions: [$sanctionId]);
+        $sanction = TrackMatch::recordSanction($teamMatch, $request->all());
+        $this->rememberUndo($teamMatch, substitutions: array_filter([$sanction->substitution_id]), sanctions: [$sanction->id]);
 
         return $this->backToTracking($team, $teamMatch);
     }
@@ -434,82 +251,9 @@ class TrackingController
         $this->authorizeDuty($request, $team, $teamMatch, RefereeDuty::Sanctions);
         abort_unless($sanction->match_id === $teamMatch->id, 404);
 
-        DB::transaction(function () use ($sanction) {
-            $substitution = $sanction->substitution;
-            $sanction->delete();
-            $substitution?->delete();
-        });
+        TrackMatch::deleteSanction($sanction);
 
         return $this->backToTracking($team, $teamMatch);
-    }
-
-    private function createPeriod(TeamMatch $teamMatch, array $attributes): MatchPeriod
-    {
-        return $teamMatch->periods()->create($attributes + [
-            'sequence' => ($teamMatch->periods()->max('sequence') ?? 0) + 1,
-        ]);
-    }
-
-    private function addStarters(TeamMatch $teamMatch, MatchPeriod $period): void
-    {
-        foreach ($teamMatch->lineup()->get() as $slot) {
-            $teamMatch->substitutions()->create([
-                'period_id' => $period->id,
-                'team_member_id' => $slot->team_member_id,
-                'direction' => SubstitutionDirection::On,
-                'zone' => $slot->zone,
-                'offset_seconds' => 0,
-            ]);
-        }
-    }
-
-    /**
-     * A blank minute means "now" in the running period; otherwise it's a match minute.
-     *
-     * @return array{0: MatchPeriod, 1: int}
-     */
-    private function moment(TeamMatch $teamMatch, mixed $minute): array
-    {
-        $timeline = $teamMatch->timeline();
-
-        if ($minute === null) {
-            $running = $timeline->runningPeriod() ?? throw ValidationException::withMessages([
-                'minute' => __('kopling-sports-management::messages.minute_required'),
-            ]);
-
-            return [$running, $timeline->length($running)];
-        }
-
-        return $timeline->momentAt((int) $minute * 60) ?? throw ValidationException::withMessages([
-            'minute' => __('kopling-sports-management::messages.no_play_yet'),
-        ]);
-    }
-
-    /**
-     * @return array<string, array<int, mixed>>
-     */
-    private function eventRules(): array
-    {
-        return [
-            'minute' => ['nullable', 'integer', 'min:0', 'max:240'],
-        ];
-    }
-
-    private function memberOf(Team $team): Exists
-    {
-        return Rule::exists('sm_team_members', 'id')->where('team_id', $team->id);
-    }
-
-    /**
-     * Every field slot filled, or nobody left on the bench to fill them.
-     */
-    private function lineupComplete(Team $team, TeamMatch $teamMatch): bool
-    {
-        $lineup = $teamMatch->lineup()->pluck('team_member_id')->all();
-        $benched = $team->members()->onTeamAt($teamMatch->scheduled_at)->whereNotIn('id', $lineup)->whereNotIn('id', $teamMatch->absentMemberIds())->exists();
-        $needed = $teamMatch->effectiveFormatPreset()?->players_on_field ?? 1;
-
-        return ! $benched || count($lineup) >= $needed;
     }
 
     private function inTeam(Team $team, TeamMatch $teamMatch): void

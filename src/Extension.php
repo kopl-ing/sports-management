@@ -227,6 +227,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                     Mcp\Tools\GetTeam::class,
                     Mcp\Tools\ListMatches::class,
                     Mcp\Tools\GetMatch::class,
+                    Mcp\Tools\LiveMatch::class,
                     Mcp\Tools\ListTasks::class,
                     Mcp\Tools\TaskPlanning::class,
                     Mcp\Tools\TaskBalance::class,
@@ -245,6 +246,12 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                     Mcp\Tools\AssignTask::class,
                     Mcp\Tools\UnassignTask::class,
                     Mcp\Tools\RecordOutcome::class,
+                    Mcp\Tools\StartPeriod::class,
+                    Mcp\Tools\EndPeriod::class,
+                    Mcp\Tools\RecordGoal::class,
+                    Mcp\Tools\Substitute::class,
+                    Mcp\Tools\RecordSanction::class,
+                    Mcp\Tools\DeleteMatchEvent::class,
                 ]),
         ];
     }

@@ -289,7 +289,7 @@ return [
         'enabled' => 'AI-assistenten',
         'enabled_help' => 'Staf van dit team mag een AI-assistent (zoals Claude) dit team laten inzien en plannen. Wat de assistent leest, ook namen van spelers, gaat naar de aanbieder die zij kozen. Sitebeheerders kunnen het team voor moderatie altijd bereiken; hun acties zie je hieronder.',
         'read_scope' => 'Je teams, wedstrijden, taken en de verdeling zien',
-        'write_scope' => 'Wedstrijden plannen, spelers en taken aanpassen en mensen indelen',
+        'write_scope' => 'Wedstrijden plannen, tijdens een wedstrijd score en wissels bijhouden, spelers en taken aanpassen en mensen indelen',
     ],
 
     'tasks' => [
