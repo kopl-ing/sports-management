@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\SportsManagement;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -30,6 +31,7 @@ class Team extends Model
         'season',
         'format_preset_id',
         'public_matches',
+        'tasks_enabled',
     ];
 
     protected function casts(): array
@@ -37,6 +39,7 @@ class Team extends Model
         return [
             'sport' => Sport::class,
             'public_matches' => 'boolean',
+            'tasks_enabled' => 'boolean',
         ];
     }
 
@@ -81,6 +84,29 @@ class Team extends Model
     public function matches(): HasMany
     {
         return $this->hasMany(TeamMatch::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    /**
+     * July to June for a season named like "2026/2027", otherwise the coming year.
+     *
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    public function seasonBounds(): array
+    {
+        if (preg_match('/^(\d{4})\s*[\/-]\s*\d{2,4}$/', trim((string) $this->season), $match)) {
+            $start = CarbonImmutable::create((int) $match[1], 7, 1);
+
+            return [$start, $start->addYear()->subDay()];
+        }
+
+        $today = CarbonImmutable::today();
+
+        return [$today, $today->addYear()->subDay()];
     }
 
     public function isStaffedBy(?Person $person): bool

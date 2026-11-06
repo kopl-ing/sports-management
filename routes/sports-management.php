@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Kopling\SportsManagement\Controllers\MatchesController;
 use Kopling\SportsManagement\Controllers\StaffController;
+use Kopling\SportsManagement\Controllers\TasksController;
 use Kopling\SportsManagement\Controllers\TeamMembersController;
 use Kopling\SportsManagement\Controllers\TeamsController;
 use Kopling\SportsManagement\Controllers\TrackingController;
@@ -35,6 +36,11 @@ Route::middleware('can:kopling-sports-management::manage-teams')->group(function
     Route::post('/{team}/members', [TeamMembersController::class, 'store'])->middleware('throttle:60,60,sm-members')->name('teams.members.store');
     Route::post('/{team}/members/{teamMember}', [TeamMembersController::class, 'update'])->name('teams.members.update');
     Route::post('/{team}/members/{teamMember}/delete', [TeamMembersController::class, 'destroy'])->name('teams.members.destroy');
+
+    Route::get('/{team}/tasks/schedule-fields', [TasksController::class, 'scheduleFields'])->name('tasks.schedule-fields');
+    Route::post('/{team}/tasks', [TasksController::class, 'store'])->middleware('throttle:60,60,sm-tasks')->name('tasks.store');
+    Route::post('/{team}/tasks/{task}', [TasksController::class, 'update'])->name('tasks.update');
+    Route::post('/{team}/tasks/{task}/delete', [TasksController::class, 'destroy'])->name('tasks.destroy');
 });
 
 Route::middleware('can:kopling-sports-management::manage-matches')->group(function () {

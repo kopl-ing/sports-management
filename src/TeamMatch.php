@@ -51,6 +51,18 @@ class TeamMatch extends Model
                 $match->public_token = Str::random(40);
             }
         });
+
+        static::saved(function (self $match) {
+            if ($match->team && ($match->wasRecentlyCreated || $match->wasChanged(['scheduled_at', 'home_away']))) {
+                TaskOccurrences::syncMatchTasks($match->team);
+            }
+        });
+
+        static::deleted(function (self $match) {
+            if ($match->team) {
+                TaskOccurrences::syncMatchTasks($match->team);
+            }
+        });
     }
 
     public static function findPublic(string $token): ?self

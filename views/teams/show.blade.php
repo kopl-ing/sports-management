@@ -39,6 +39,7 @@
                             'sportEditable' => ! $sportLocked,
                         ])
                         <x-k::form.toggle :data="['name' => 'public_matches', 'label' => __('kopling-sports-management::messages.public.team_default'), 'description' => __('kopling-sports-management::messages.public.team_default_help'), 'value' => $reopening === 'modal-team-edit' ? old('public_matches') : $team->public_matches]" />
+                        <x-k::form.toggle :data="['name' => 'tasks_enabled', 'label' => __('kopling-sports-management::messages.tasks.enabled'), 'description' => __('kopling-sports-management::messages.tasks.enabled_help'), 'value' => $reopening === 'modal-team-edit' ? old('tasks_enabled') : $team->tasks_enabled]" />
                         @if ($reopening === 'modal-team-edit' && $errors->any())
                             <p class="text-error text-sm">{{ $errors->first() }}</p>
                         @endif
@@ -54,6 +55,10 @@
 
         @if ($team->members->isNotEmpty() || $upcomingMatches->isNotEmpty() || $pastMatches->isNotEmpty())
             @include('kopling-sports-management::teams.matches')
+        @endif
+
+        @if ($isCoach && $team->tasks_enabled)
+            @include('kopling-sports-management::teams.tasks')
         @endif
 
         @if ($isCoach)
