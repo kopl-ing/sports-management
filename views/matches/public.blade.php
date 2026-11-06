@@ -38,7 +38,7 @@
                             ? __('kopling-sports-management::messages.public.task_nobody', ['title' => $task['title']])
                             : __('kopling-sports-management::messages.public.task_short', ['title' => $task['title'], 'count' => $task['count'], 'min' => $task['min']]))->join(', ');
                     @endphp
-                    <p class="text-sm text-warning">{{ __('kopling-sports-management::messages.public.tasks_needed') }} {{ $vacant }}. <span class="opacity-80">{{ __('kopling-sports-management::messages.public.tasks_ask') }}</span></p>
+                    <p class="text-sm text-warning">{{ __('kopling-sports-management::messages.public.tasks_needed') }} {{ $vacant }}.</p>
                 @endif
             </div>
         </section>

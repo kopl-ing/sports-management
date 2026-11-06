@@ -273,7 +273,6 @@ return [
         'tasks_needed' => 'Still needed for this match:',
         'task_short' => ':title (:count of at least :min)',
         'task_nobody' => ':title (nobody yet)',
-        'tasks_ask' => 'Ask the coach for the task link.',
     ],
 
     'periods' => [

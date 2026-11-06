@@ -266,7 +266,6 @@ return [
         'tasks_needed' => 'Nog nodig voor deze wedstrijd:',
         'task_short' => ':title (:count van minimaal :min)',
         'task_nobody' => ':title (nog niemand)',
-        'tasks_ask' => 'Vraag de trainer om de takenlink.',
     ],
 
     'periods' => [
