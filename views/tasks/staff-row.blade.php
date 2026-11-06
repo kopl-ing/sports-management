@@ -8,7 +8,12 @@
                         <span class="font-normal opacity-60">&middot; {{ $occurrence->matchLabel() }}</span>
                     @endif
                 </div>
-                <div class="text-sm opacity-60">{{ $when }}</div>
+                <div class="text-sm opacity-60">
+                    {{ $when }}
+                    @if ($task->peopleSummary())
+                        &middot; {{ $task->peopleSummary() }}
+                    @endif
+                </div>
             </div>
             <span class="badge badge-sm shrink-0 whitespace-nowrap {{ $state?->badgeClass() ?? 'badge-ghost' }}" @if ($state) title="{{ $state->label() }}" @endif>
                 {{ $task->max_people === null ? $count : $count.' / '.$task->max_people }}

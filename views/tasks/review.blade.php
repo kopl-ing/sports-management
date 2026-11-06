@@ -33,9 +33,15 @@
                                         <span class="font-normal opacity-60">&middot; {{ $occurrence->matchLabel() }}</span>
                                     @endif
                                 </div>
-                                <div class="text-sm opacity-60">{{ $occurrence->startsAt()->translatedFormat($occurrence->time === null ? 'D j M' : 'D j M, H:i') }}</div>
+                                <div class="text-sm opacity-60">
+                                    {{ $occurrence->startsAt()->translatedFormat($occurrence->time === null ? 'D j M' : 'D j M, H:i') }}
+                                    @if ($occurrence->task->peopleSummary())
+                                        &middot; {{ $occurrence->task->peopleSummary() }}
+                                    @endif
+                                </div>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
+                                <span class="badge badge-sm badge-outline tabular-nums">{{ $occurrence->task->max_people === null ? $enlistments->count() : $enlistments->count().' / '.$occurrence->task->max_people }}</span>
                                 @if ($approving && $pending > 0)
                                     <span class="badge badge-sm badge-warning whitespace-nowrap">{{ trans_choice('kopling-sports-management::messages.tasks.to_confirm', $pending) }}</span>
                                     <form method="POST" action="{{ $confirmUrl }}">
@@ -89,7 +95,8 @@
                             </ul>
                         @endif
 
-                        @if ($occurrence->task->enrolment === \Kopling\SportsManagement\TaskEnrolment::PerOccurrence && $players !== [])
+                        @if ($occurrence->task->enrolment === \Kopling\SportsManagement\TaskEnrolment::PerOccurrence && $players !== []
+                            && ($occurrence->task->max_people === null || $enlistments->count() < $occurrence->task->max_people))
                             <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.enlist', [$team, $occurrence->task]) }}" class="join w-full" autocomplete="off">
                                 @csrf
                                 <input type="hidden" name="occurrence_id" value="{{ $occurrence->id }}">

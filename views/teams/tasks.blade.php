@@ -88,6 +88,37 @@
                                     {{ __('kopling-sports-management::messages.tasks.no_upcoming') }}
                                 @endif
                             </div>
+                            @if ($canManageTeam && $task->enrolment === \Kopling\SportsManagement\TaskEnrolment::WholeTask)
+                                @php $holders = $task->wholeTaskEnlistments->filter->isActive(); @endphp
+                                <div class="flex flex-col gap-1 mt-2">
+                                    @foreach ($holders as $enlistment)
+                                        <div class="flex items-center gap-2 text-sm">
+                                            <span>{{ $enlistment->member->person->name }}</span>
+                                            @if ($enlistment->note)
+                                                <span class="opacity-60 truncate">&middot; {{ $enlistment->note }}</span>
+                                            @endif
+                                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.leave', [$team, $enlistment]) }}" class="ms-auto">
+                                                @csrf
+                                                <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.remove') }}</button>
+                                            </form>
+                                        </div>
+                                    @endforeach
+                                    @if (($task->max_people === null || $holders->count() < $task->max_people) && $task->upcomingOccurrences->isNotEmpty() && $players !== [])
+                                        <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.enlist', [$team, $task]) }}" class="join w-full" autocomplete="off">
+                                            @csrf
+                                            <select name="team_member_id" class="select select-sm join-item w-auto" required aria-label="{{ __('kopling-sports-management::messages.tasks.assign_player') }}">
+                                                @foreach ($players as $id => $name)
+                                                    <option value="{{ $id }}">{{ $name }}</option>
+                                                @endforeach
+                                            </select>
+                                            <input type="text" name="note" maxlength="100" class="input input-sm join-item flex-1 min-w-0"
+                                                   placeholder="{{ __('kopling-sports-management::messages.tasks.link.note_placeholder') }}"
+                                                   aria-label="{{ __('kopling-sports-management::messages.tasks.link.note_placeholder') }}">
+                                            <button type="submit" class="btn btn-sm join-item">{{ __('kopling-sports-management::messages.tasks.assign') }}</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                         @if ($people)
                             <span class="badge badge-sm badge-outline shrink-0 whitespace-nowrap">{{ $people }}</span>

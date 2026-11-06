@@ -31,6 +31,7 @@ class PublicTasksController
 
         return $this->private(response()->view('kopling-sports-management::tasks.public-picker', [
             'teamName' => $team->name,
+            'sport' => $team->sport,
             'storageKey' => 'kopling-sm-tasks:'.$token,
             'pick' => $request->boolean('pick'),
             'players' => $members->map(fn (TeamMember $member) => $this->shown($member) + [
@@ -148,6 +149,7 @@ class PublicTasksController
 
         return $this->private(response()->view('kopling-sports-management::tasks.public', $links + [
             'teamName' => $team->name,
+            'sport' => $team->sport,
             'player' => $this->shown($member),
             'wholeTasks' => $board->wholeTasks()->map(fn (Task $task) => [
                 'id' => $task->id,
