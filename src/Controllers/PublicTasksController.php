@@ -10,10 +10,12 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Kopling\SportsManagement\Task;
+use Kopling\SportsManagement\TaskBalance;
 use Kopling\SportsManagement\TaskBoard;
 use Kopling\SportsManagement\TaskEnlistment;
 use Kopling\SportsManagement\TaskEnlistments;
 use Kopling\SportsManagement\TaskOccurrence;
+use Kopling\SportsManagement\TaskOccurrenceState;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamMember;
 
@@ -25,7 +27,7 @@ class PublicTasksController
     public function picker(Request $request, string $token): Response
     {
         $team = Team::findByTasksToken($token) ?? abort(404);
-        $members = TeamMember::sorted($team->members()->where('guest', false)->with('person')->get());
+        $members = TeamMember::sorted($team->members()->onTeamAt(now())->where('guest', false)->with('person')->get());
 
         return $this->private(response()->view('kopling-sports-management::tasks.public-picker', [
             'teamName' => $team->name,
@@ -97,7 +99,7 @@ class PublicTasksController
     private function teamMember(string $token, string $memberId): array
     {
         $team = Team::findByTasksToken($token) ?? abort(404);
-        $member = $team->members()->where('guest', false)->whereKey($memberId)->with('person')->first() ?? abort(404);
+        $member = $team->members()->onTeamAt(now())->where('guest', false)->whereKey($memberId)->with('person')->first() ?? abort(404);
 
         return [$team, $member];
     }
@@ -136,6 +138,7 @@ class PublicTasksController
                     'state' => $state,
                     'count' => $board->count($occurrence),
                     'max' => $occurrence->task->max_people,
+                    'min' => $occurrence->task->min_people,
                     'people' => $people($occurrence->enlistments),
                     'can_enlist' => $state->acceptsEnlisting(),
                 ];
@@ -157,7 +160,24 @@ class PublicTasksController
                 'people' => $people($board->activeEnlistments($task)),
                 'can_enlist' => $board->wholeTaskAcceptsEnlisting($task),
             ])->all(),
+            'needsPeople' => $occurrences
+                ->filter(fn (array $row) => $row['state'] === TaskOccurrenceState::NeedsPeople && $row['date']->lte(today()->addDays(TaskBoard::SOON_DAYS)))
+                ->values()
+                ->all(),
             'days' => $occurrences->groupBy(fn (array $row) => $row['date']->toDateString())->all(),
+            'balance' => $team->tasks_balance_public
+                ? TaskBalance::for($team)
+                    ->reject(fn (array $row) => $row['left'])
+                    ->map(fn (array $row) => $this->shown($row['member']) + [
+                        'points' => $row['points'],
+                        'done' => $row['done'],
+                        'upcoming' => $row['upcoming'],
+                        'mine' => $row['member']->id === $member->id,
+                    ])
+                    ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                    ->values()
+                    ->all()
+                : null,
             'laterUrl' => $board->hasLater ? $links['url'].'?'.http_build_query(['weeks' => $weeks + TaskBoard::WEEKS]) : null,
         ]));
     }
@@ -168,7 +188,7 @@ class PublicTasksController
             'task_id' => ['required', 'uuid'],
             'occurrence_id' => ['nullable', 'uuid'],
             'note' => ['nullable', 'string', 'max:100'],
-        ]);
+        ], [], FieldNames::all());
 
         $task = $team->tasks()->whereKey($data['task_id'])->first() ?? abort(404);
         $occurrence = isset($data['occurrence_id']) ? ($task->occurrences()->whereKey($data['occurrence_id'])->first() ?? abort(404)) : null;

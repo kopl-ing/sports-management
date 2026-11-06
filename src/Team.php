@@ -35,6 +35,8 @@ class Team extends Model
         'public_matches',
         'tasks_enabled',
         'tasks_link_mode',
+        'tasks_balance_public',
+        'tasks_approve_completion',
     ];
 
     protected function casts(): array
@@ -44,6 +46,8 @@ class Team extends Model
             'public_matches' => 'boolean',
             'tasks_enabled' => 'boolean',
             'tasks_link_mode' => TaskLinkMode::class,
+            'tasks_balance_public' => 'boolean',
+            'tasks_approve_completion' => 'boolean',
         ];
     }
 
@@ -88,6 +92,11 @@ class Team extends Model
     public function matches(): HasMany
     {
         return $this->hasMany(TeamMatch::class);
+    }
+
+    public function periods(): HasMany
+    {
+        return $this->hasMany(TeamPeriod::class)->orderBy('starts_on');
     }
 
     public function tasks(): HasMany

@@ -65,6 +65,7 @@
             <x-k::form.input :data="['name' => 'starts_on', 'label' => __('kopling-sports-management::messages.tasks.starts_on'), 'type' => 'date', 'value' => $v('starts_on', $seasonStart->toDateString()), 'required' => true]" />
             <x-k::form.input :data="['name' => 'ends_on', 'label' => __('kopling-sports-management::messages.tasks.ends_on'), 'type' => 'date', 'value' => $v('ends_on', $seasonEnd->toDateString()), 'required' => true]" />
         </div>
+        <x-k::form.toggle :data="['name' => 'within_periods', 'label' => __('kopling-sports-management::messages.periods.within'), 'description' => $team->periods->isEmpty() ? __('kopling-sports-management::messages.periods.within_none') : __('kopling-sports-management::messages.periods.within_help', ['periods' => $team->periods->pluck('name')->join(', ')]), 'value' => $v('within_periods') === '1']" />
     @endif
 
     @if ($repeats)

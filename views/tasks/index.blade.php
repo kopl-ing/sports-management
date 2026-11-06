@@ -10,8 +10,10 @@
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h1 class="text-2xl font-bold">{{ __('kopling-sports-management::messages.tasks.planning') }}</h1>
                 <div role="tablist" class="tabs tabs-box tabs-sm">
-                    <a role="tab" href="{{ route('kopling-sports-management::sports-management/tasks.index', $team) }}" class="tab {{ $openOnly ? '' : 'tab-active' }}">{{ __('kopling-sports-management::messages.tasks.filter.all') }}</a>
-                    <a role="tab" href="{{ route('kopling-sports-management::sports-management/tasks.index', ['team' => $team, 'filter' => 'open']) }}" class="tab {{ $openOnly ? 'tab-active' : '' }}">{{ __('kopling-sports-management::messages.tasks.filter.open') }}</a>
+                    @foreach (array_filter([null => true, 'open' => true, 'past' => true, 'confirm' => $team->tasks_approve_completion]) as $key => $shown)
+                        <a role="tab" href="{{ route('kopling-sports-management::sports-management/tasks.index', ['team' => $team] + ($key === '' ? [] : ['filter' => $key])) }}"
+                           class="tab {{ ($filter ?? '') === $key ? 'tab-active' : '' }}">{{ __('kopling-sports-management::messages.tasks.filter.'.($key === '' ? 'all' : $key)) }}</a>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -22,6 +24,9 @@
                 <div role="alert" class="alert alert-error alert-soft">{{ $message }}</div>
             @enderror
 
+            @isset($review)
+                @include('kopling-sports-management::tasks.review')
+            @else
             @if ($wholeTasks->isNotEmpty())
                 <section class="flex flex-col gap-2">
                     <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.link.whole_tasks') }}</h2>
@@ -67,9 +72,10 @@
                     <p class="opacity-60">{{ __('kopling-sports-management::messages.tasks.link.nothing') }}</p>
                 @endif
             @endforelse
+            @endisset
 
             @if ($laterUrl)
-                <a href="{{ $laterUrl }}" class="btn btn-ghost self-center">{{ __('kopling-sports-management::messages.tasks.link.later') }}</a>
+                <a href="{{ $laterUrl }}" class="btn btn-ghost self-center">{{ isset($review) ? __('kopling-sports-management::messages.tasks.earlier') : __('kopling-sports-management::messages.tasks.link.later') }}</a>
             @endif
         </div>
     </div>

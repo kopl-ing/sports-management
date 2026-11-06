@@ -190,7 +190,7 @@ class TeamMatch extends Model
     {
         $writes = FieldSlots::writes(
             $placement,
-            TeamMember::sorted($this->team->members()->with('person')->get())->pluck('id')->all(),
+            TeamMember::sorted($this->team->members()->onTeamAt($this->scheduled_at)->with('person')->get())->pluck('id')->all(),
             $this->slotRows(),
             $data['team_member_id'],
             isset($data['zone']) ? Position::from($data['zone']) : null,

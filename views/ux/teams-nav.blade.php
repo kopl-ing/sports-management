@@ -42,4 +42,23 @@
             </li>
         @endforeach
     @endif
+
+    @if ($shortHanded->isNotEmpty())
+        <li class="menu-title">{{ __('kopling-sports-management::messages.tasks.soon.heading') }}</li>
+        @foreach ($shortHanded as $row)
+            @php($occurrence = $row['occurrence'])
+            <li>
+                <a href="{{ route('kopling-sports-management::sports-management/tasks.index', ['team' => $occurrence->task->team, 'filter' => 'open']) }}#occurrence-{{ $occurrence->id }}" class="items-start">
+                    <span class="status status-warning mt-1.5" aria-hidden="true"></span>
+                    <span class="flex flex-col">
+                        <span>{{ $teams->count() > 1 ? $occurrence->task->team->name.' · '.$occurrence->task->title : $occurrence->task->title }}</span>
+                        <span class="text-xs opacity-60">
+                            {{ $occurrence->startsAt()->translatedFormat($occurrence->time === null ? 'D j M' : 'D j M, H:i') }}
+                            &middot; {{ __('kopling-sports-management::messages.tasks.soon.count', ['count' => $row['count'], 'min' => $occurrence->task->min_people]) }}
+                        </span>
+                    </span>
+                </a>
+            </li>
+        @endforeach
+    @endif
 </ul>

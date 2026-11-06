@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\Sport;
 use Kopling\SportsManagement\StaffRole;
+use Kopling\SportsManagement\TaskBoard;
 use Kopling\SportsManagement\TaskLinkMode;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamInvitation;
@@ -54,8 +55,9 @@ class TeamsController
         abort_if($role === null, 403);
         $isCoach = $role === StaffRole::Coach;
 
-        $team->load(['formatPreset', 'staff', 'members.person']);
-        $team->setRelation('members', TeamMember::sorted($team->members));
+        $team->load(['formatPreset', 'staff', 'members.person', 'periods']);
+        [$current, $former] = $team->members->partition(fn (TeamMember $member) => ! $member->hasLeft());
+        $team->setRelation('members', TeamMember::sorted($current));
         [$pastMatches, $upcomingMatches] = $team->matches()
             ->with(['periods', 'goals'])
             ->when(! $isCoach, fn ($query) => $query->where('referee_person_id', $request->user()->id))
@@ -66,6 +68,7 @@ class TeamsController
         return view('kopling-sports-management::teams.show', [
             'team' => $team,
             'isCoach' => $isCoach,
+            'formerMembers' => $former->sortByDesc(fn (TeamMember $member) => $member->left_on)->values(),
             'upcomingMatches' => $upcomingMatches->values(),
             'pastMatches' => $pastMatches->reverse()->values(),
             'invitations' => $team->invitations()->orderBy('email')->get(),
@@ -74,6 +77,7 @@ class TeamsController
             'tasks' => $tasks = $isCoach && $team->tasks_enabled
                 ? $team->tasks()->with(['dates', 'upcomingOccurrences'])->orderBy('title')->get()
                 : collect(),
+            'shortHanded' => $isCoach ? TaskBoard::shortHanded([$team]) : collect(),
             'duplicate' => $request->filled('duplicate') ? $tasks->find($request->query('duplicate')) : null,
         ]);
     }
@@ -113,6 +117,8 @@ class TeamsController
             'public_matches' => ['sometimes', 'boolean'],
             'tasks_enabled' => ['sometimes', 'boolean'],
             'tasks_link_mode' => ['sometimes', Rule::enum(TaskLinkMode::class)],
+            'tasks_balance_public' => ['sometimes', 'boolean'],
+            'tasks_approve_completion' => ['sometimes', 'boolean'],
         ]);
     }
 }

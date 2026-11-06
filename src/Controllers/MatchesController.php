@@ -40,7 +40,7 @@ class MatchesController
         $teamMatch->setRelation('team', $team);
         abort_unless($teamMatch->isVisibleTo($request->user()), 403);
 
-        $team->load(['formatPreset', 'members.person', 'staff']);
+        $team->load(['formatPreset', 'members' => fn ($query) => $query->onTeamAt($teamMatch->scheduled_at)->with('person'), 'staff']);
         $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities']);
 
         return view('kopling-sports-management::matches.show', [
@@ -85,7 +85,7 @@ class MatchesController
 
         $submitted = $data['availability'] ?? [];
 
-        foreach ($team->members()->pluck('id') as $memberId) {
+        foreach ($team->members()->onTeamAt($teamMatch->scheduled_at)->pluck('id') as $memberId) {
             $status = $submitted[$memberId] ?? null;
 
             if ($status === null) {

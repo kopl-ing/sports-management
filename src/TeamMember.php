@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Kopling\SportsManagement;
 
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Kopling\Core\Database\Model;
 use Kopling\Core\People\Person;
@@ -30,6 +34,7 @@ class TeamMember extends Model
         'jersey_number',
         'positions',
         'guest',
+        'left_on',
     ];
 
     protected function casts(): array
@@ -37,6 +42,7 @@ class TeamMember extends Model
         return [
             'positions' => AsEnumCollection::of(Position::class),
             'guest' => 'boolean',
+            'left_on' => 'immutable_date',
         ];
     }
 
@@ -63,9 +69,40 @@ class TeamMember extends Model
             && ! $person->identities()->exists();
     }
 
+    /** `left_on` is the first day a player is no longer on the team. */
+    public function scopeOnTeamAt(Builder $query, CarbonInterface $at): void
+    {
+        $query->where(fn (Builder $query) => $query->whereNull('left_on')->orWhereDate('left_on', '>', $at->toDateString()));
+    }
+
+    public function hasLeft(): bool
+    {
+        return $this->left_on !== null && $this->left_on->lte(CarbonImmutable::today());
+    }
+
+    /**
+     * Keeps everything before `$on`; drops their task sign-ups and the planning of not-yet-started matches from then on.
+     */
+    public function leaveOn(CarbonImmutable $on, ?Person $by): void
+    {
+        DB::transaction(function () use ($on, $by) {
+            $this->update(['left_on' => $on]);
+            TaskEnlistments::endFor($this, $on, $by);
+
+            $matches = TeamMatch::where('team_id', $this->team_id)
+                ->where('scheduled_at', '>=', $on->toDateString())
+                ->doesntHave('periods')
+                ->pluck('id');
+            foreach ([MatchAvailability::class, MatchLineup::class, MatchSlot::class] as $planning) {
+                $planning::whereIn('match_id', $matches)->where('team_member_id', $this->id)->delete();
+            }
+        });
+    }
+
     public static function findByTasksToken(string $token): ?self
     {
         return static::where('tasks_token', $token)
+            ->onTeamAt(now())
             ->where('guest', false)
             ->whereHas('team', fn ($query) => $query->where('tasks_enabled', true)->where('tasks_link_mode', TaskLinkMode::PerPlayer))
             ->first();

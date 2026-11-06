@@ -11,6 +11,8 @@ class TaskBoard
 {
     public const WEEKS = 8;
 
+    public const SOON_DAYS = 7;
+
     /** @var Collection<int, Task> */
     public readonly Collection $tasks;
 
@@ -50,6 +52,68 @@ class TaskBoard
                 $occurrence->setRelation('task', $task);
                 $occurrence->enlistments->each(fn (TaskEnlistment $enlistment) => $enlistment->setRelation('task', $task)->setRelation('occurrence', $occurrence));
             });
+    }
+
+    /**
+     * Dates in the coming days still under their task's minimum, across the given teams (those with tasks on).
+     *
+     * @param iterable<Team> $teams
+     * @return Collection<int, array{occurrence: TaskOccurrence, count: int}>
+     */
+    public static function shortHanded(iterable $teams, int $days = self::SOON_DAYS): Collection
+    {
+        $teams = collect($teams)->filter->tasks_enabled->keyBy('id');
+        if ($teams->isEmpty()) {
+            return collect();
+        }
+
+        return TaskOccurrence::query()
+            ->whereHas('task', fn ($query) => $query->whereIn('team_id', $teams->keys())->whereNotNull('min_people'))
+            ->whereNull('cancelled_at')
+            ->whereDate('date', '>=', today()->toDateString())
+            ->whereDate('date', '<=', today()->addDays($days)->toDateString())
+            ->with('task.wholeTaskEnlistments')
+            ->withCount('enlistments')
+            ->orderBy('date')
+            ->orderBy('time')
+            ->get()
+            ->map(function (TaskOccurrence $occurrence) use ($teams) {
+                $task = $occurrence->task->setRelation('team', $teams[$occurrence->task->team_id]);
+                $count = $occurrence->enlistments_count + $task->wholeTaskEnlistments->filter(fn (TaskEnlistment $enlistment) => $enlistment->covers($occurrence))->count();
+
+                return ['occurrence' => $occurrence, 'count' => $count];
+            })
+            ->filter(fn (array $row) => $row['occurrence']->state($row['count']) === TaskOccurrenceState::NeedsPeople)
+            ->values();
+    }
+
+    /**
+     * Tasks tied to this match still under their minimum, or without one and taken by nobody yet.
+     *
+     * @return list<array{title: string, count: int, min: ?int}>
+     */
+    public static function vacantFor(TeamMatch $match): array
+    {
+        if (! $match->team->tasks_enabled) {
+            return [];
+        }
+
+        return TaskOccurrence::query()
+            ->where('match_id', $match->id)
+            ->whereNull('cancelled_at')
+            ->with('task.wholeTaskEnlistments')
+            ->withCount('enlistments')
+            ->get()
+            ->map(function (TaskOccurrence $occurrence) {
+                $task = $occurrence->task;
+                $count = $occurrence->enlistments_count + $task->wholeTaskEnlistments->filter(fn (TaskEnlistment $enlistment) => $enlistment->covers($occurrence))->count();
+
+                return ['title' => $task->title, 'count' => $count, 'min' => $task->min_people];
+            })
+            ->filter(fn (array $row) => $row['min'] === null ? $row['count'] === 0 : $row['count'] < $row['min'])
+            ->sortBy('title', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
     }
 
     /**

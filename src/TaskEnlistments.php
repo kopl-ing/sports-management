@@ -68,14 +68,40 @@ class TaskEnlistments
             }
 
             $next = self::nextOccurrence($enlistment->task);
-            $endsOn = $next === null ? CarbonImmutable::today() : $next->date->subDay();
-            $covered = $enlistment->task->occurrences()
-                ->whereNull('cancelled_at')
-                ->whereDate('date', '>=', $enlistment->startsOn()->toDateString())
-                ->whereDate('date', '<=', $endsOn->toDateString())
-                ->exists();
-            $covered ? $enlistment->update(['ended_on' => $endsOn]) : $enlistment->delete();
+            self::end($enlistment, $next === null ? CarbonImmutable::today() : $next->date->subDay());
         });
+    }
+
+    /**
+     * For a player leaving the team: sign-ups from `$on` go, season-long ones end the day before.
+     */
+    public static function endFor(TeamMember $member, CarbonImmutable $on, ?Person $by): void
+    {
+        $enlistments = TaskEnlistment::where('team_member_id', $member->id)
+            ->with(['task', 'occurrence'])
+            ->get()
+            ->filter(fn (TaskEnlistment $enlistment) => $enlistment->isWholeTask()
+                ? $enlistment->ended_on === null || $enlistment->ended_on->gte($on)
+                : $enlistment->occurrence->date->gte($on));
+
+        foreach ($enlistments as $enlistment) {
+            self::log($enlistment, TaskEnlistmentAction::Left, $by);
+            $enlistment->isWholeTask() ? self::end($enlistment, $on->subDay()) : $enlistment->delete();
+        }
+    }
+
+    /**
+     * A season-long sign-up that covered nothing yet is dropped rather than ended.
+     */
+    private static function end(TaskEnlistment $enlistment, CarbonImmutable $endsOn): void
+    {
+        $covered = $enlistment->task->occurrences()
+            ->whereNull('cancelled_at')
+            ->whereDate('date', '>=', $enlistment->startsOn()->toDateString())
+            ->whereDate('date', '<=', $endsOn->toDateString())
+            ->exists();
+
+        $covered ? $enlistment->update(['ended_on' => $endsOn]) : $enlistment->delete();
     }
 
     public static function canLeave(TaskEnlistment $enlistment): bool

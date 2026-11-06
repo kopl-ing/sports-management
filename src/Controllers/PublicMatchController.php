@@ -11,6 +11,7 @@ use Kopling\SportsManagement\MatchGoal;
 use Kopling\SportsManagement\MatchLineup;
 use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\PeriodType;
+use Kopling\SportsManagement\TaskBoard;
 use Kopling\SportsManagement\Position;
 use Kopling\SportsManagement\TeamMatch;
 use Kopling\SportsManagement\TeamMember;
@@ -25,7 +26,7 @@ class PublicMatchController
     public function __invoke(string $token): Response
     {
         $match = TeamMatch::findPublic($token) ?? abort(404);
-        $team = $match->team->load(['formatPreset', 'members.person']);
+        $team = $match->team->load(['formatPreset', 'members' => fn ($query) => $query->onTeamAt($match->scheduled_at)->with('person')]);
         $match->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
 
         $timeline = $match->timeline();
@@ -97,6 +98,7 @@ class PublicMatchController
                 'bench' => $state === MatchState::Ended ? [] : $bench,
                 'goals' => $goals,
                 'multiplePoints' => count($match->sportConfig()->pointValues()) > 1,
+                'vacantTasks' => $state === MatchState::Planned ? TaskBoard::vacantFor($match) : [],
                 'pollSeconds' => $state === MatchState::Ended ? null : self::POLL_SECONDS,
             ])
             ->header('X-Robots-Tag', 'noindex, nofollow')

@@ -55,7 +55,7 @@ class TrackingController
     {
         $this->authorizeView($request, $team, $teamMatch);
 
-        $team->load(['formatPreset', 'members.person']);
+        $team->load(['formatPreset', 'members' => fn ($query) => $query->onTeamAt($teamMatch->scheduled_at)->with('person')]);
         $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
         $timeline = $teamMatch->timeline();
         $involved = $teamMatch->lineup->pluck('team_member_id')
@@ -506,7 +506,7 @@ class TrackingController
     private function lineupComplete(Team $team, TeamMatch $teamMatch): bool
     {
         $lineup = $teamMatch->lineup()->pluck('team_member_id')->all();
-        $benched = $team->members()->whereNotIn('id', $lineup)->whereNotIn('id', $teamMatch->absentMemberIds())->exists();
+        $benched = $team->members()->onTeamAt($teamMatch->scheduled_at)->whereNotIn('id', $lineup)->whereNotIn('id', $teamMatch->absentMemberIds())->exists();
         $needed = $teamMatch->effectiveFormatPreset()?->players_on_field ?? 1;
 
         return ! $benched || count($lineup) >= $needed;

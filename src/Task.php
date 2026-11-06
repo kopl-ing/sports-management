@@ -31,6 +31,7 @@ class Task extends Model
         'time',
         'starts_on',
         'ends_on',
+        'within_periods',
         'lead_minutes',
         'min_people',
         'max_people',
@@ -39,6 +40,7 @@ class Task extends Model
         'weight',
         'enrolment',
         'undo_window',
+        'confirm_each_occurrence',
         'created_by',
     ];
 
@@ -48,9 +50,11 @@ class Task extends Model
             'schedule' => TaskSchedule::class,
             'enrolment' => TaskEnrolment::class,
             'undo_window' => TaskUndoWindow::class,
+            'confirm_each_occurrence' => 'boolean',
             'recurrence' => 'array',
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
+            'within_periods' => 'boolean',
             'lead_minutes' => 'integer',
             'min_people' => 'integer',
             'max_people' => 'integer',
@@ -144,7 +148,7 @@ class Task extends Model
         $rule = $this->recurrenceRule();
         $weekday = fn (?int $day) => $day === null ? '' : now()->startOfWeek()->addDays($day - 1)->translatedFormat('l');
 
-        return match ($rule?->frequency) {
+        $summary = match ($rule?->frequency) {
             TaskFrequency::Weekly => trans_choice($key.'weekly', $rule->interval, ['weekday' => $weekday($rule->weekday)]),
             TaskFrequency::Monthly => $rule->nth === null
                 ? trans_choice($key.'monthly_day', $rule->interval, ['day' => $rule->day])
@@ -152,5 +156,7 @@ class Task extends Model
             TaskFrequency::Yearly => __($key.'yearly', ['date' => now()->setDate(2000, $rule->month ?? 1, $rule->day ?? 1)->translatedFormat('j F')]),
             null => '',
         };
+
+        return $this->within_periods && $summary !== '' ? __($key.'within_periods', ['schedule' => $summary]) : $summary;
     }
 }

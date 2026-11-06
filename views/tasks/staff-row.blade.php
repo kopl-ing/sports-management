@@ -1,4 +1,4 @@
-<li class="list-row {{ $state && ! $state->acceptsEnlisting() && $state !== \Kopling\SportsManagement\TaskOccurrenceState::Full ? 'opacity-60' : '' }}">
+<li @if ($occurrence) id="occurrence-{{ $occurrence->id }}" @endif class="list-row scroll-mt-20 {{ $state && ! $state->acceptsEnlisting() && $state !== \Kopling\SportsManagement\TaskOccurrenceState::Full ? 'opacity-60' : '' }}">
     <div class="list-col-grow min-w-0 flex flex-col gap-2">
         <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">

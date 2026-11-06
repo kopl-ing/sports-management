@@ -23,6 +23,23 @@
                 <div role="alert" class="alert alert-error alert-soft">{{ $message }}</div>
             @enderror
 
+            @if ($needsPeople !== [])
+                <div role="alert" class="alert alert-warning alert-soft flex-col items-stretch gap-1">
+                    <span class="font-semibold">{{ __('kopling-sports-management::messages.tasks.soon.heading') }}</span>
+                    <ul class="text-sm">
+                        @foreach ($needsPeople as $row)
+                            <li>
+                                <a href="#occurrence-{{ $row['id'] }}" class="link link-hover">
+                                    {{ $row['date']->translatedFormat('D j M') }}@if ($row['time']), {{ $row['time'] }}@endif
+                                    &middot; {{ $row['title'] }}
+                                    &middot; {{ __('kopling-sports-management::messages.tasks.soon.count', ['count' => $row['count'], 'min' => $row['min']]) }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             @if ($wholeTasks !== [])
                 <section class="flex flex-col gap-2">
                     <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.link.whole_tasks') }}</h2>
@@ -51,6 +68,24 @@
 
             @if ($laterUrl)
                 <a href="{{ $laterUrl }}" class="btn btn-ghost self-center">{{ __('kopling-sports-management::messages.tasks.link.later') }}</a>
+            @endif
+
+            @if ($balance)
+                <section class="flex flex-col gap-2">
+                    <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.balance') }}</h2>
+                    <ul class="list card card-border bg-base-100">
+                        @foreach ($balance as $row)
+                            <li class="list-row items-center">
+                                <x-k::person.avatar :name="$row['name']" :color="$row['color']" :mask="null" size="w-6" />
+                                <span class="list-col-grow truncate {{ $row['mine'] ? 'font-semibold' : '' }}">{{ $row['name'] }}</span>
+                                <span class="text-sm tabular-nums whitespace-nowrap">
+                                    <span class="font-semibold">{{ trans_choice('kopling-sports-management::messages.tasks.points', $row['points']) }}</span>
+                                    <span class="opacity-60">&middot; {{ __('kopling-sports-management::messages.tasks.done_upcoming', ['done' => $row['done'], 'upcoming' => $row['upcoming']]) }}</span>
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
             @endif
         </div>
     </div>

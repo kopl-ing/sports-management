@@ -42,6 +42,8 @@
                         ])
                         <x-k::form.toggle :data="['name' => 'public_matches', 'label' => __('kopling-sports-management::messages.public.team_default'), 'description' => __('kopling-sports-management::messages.public.team_default_help'), 'value' => $reopening === 'modal-team-edit' ? old('public_matches') : $team->public_matches]" />
                         <x-k::form.toggle :data="['name' => 'tasks_enabled', 'label' => __('kopling-sports-management::messages.tasks.enabled'), 'description' => __('kopling-sports-management::messages.tasks.enabled_help'), 'value' => $reopening === 'modal-team-edit' ? old('tasks_enabled') : $team->tasks_enabled]" />
+                        <x-k::form.toggle :data="['name' => 'tasks_balance_public', 'label' => __('kopling-sports-management::messages.tasks.balance_public'), 'description' => __('kopling-sports-management::messages.tasks.balance_public_help'), 'value' => $reopening === 'modal-team-edit' ? old('tasks_balance_public') : $team->tasks_balance_public]" />
+                        <x-k::form.toggle :data="['name' => 'tasks_approve_completion', 'label' => __('kopling-sports-management::messages.tasks.approve_completion'), 'description' => __('kopling-sports-management::messages.tasks.approve_completion_help'), 'value' => $reopening === 'modal-team-edit' ? old('tasks_approve_completion') : $team->tasks_approve_completion]" />
                         <x-k::form.select :data="['name' => 'tasks_link_mode', 'label' => __('kopling-sports-management::messages.tasks.link_mode_label'), 'options' => \Kopling\SportsManagement\TaskLinkMode::options(), 'description' => __('kopling-sports-management::messages.tasks.link_mode_help'), 'value' => (string) ($reopening === 'modal-team-edit' ? old('tasks_link_mode') : $team->tasks_link_mode->value)]" />
                         @if ($reopening === 'modal-team-edit' && $errors->any())
                             <p class="text-error text-sm">{{ $errors->first() }}</p>
@@ -132,44 +134,28 @@
                                     @if ($playerLinks && ! $member->guest)
                                         @include('kopling-sports-management::tasks.copy-link', ['url' => $member->tasksUrl(), 'compact' => true])
                                     @endif
-                                    @if ($canManageTeam)
-                                        <x-k::modal :label="__('kopling-sports-management::messages.edit')" :id="$modalId">
-                                            <x-slot:trigger>{{ __('kopling-sports-management::messages.edit') }}</x-slot:trigger>
-                                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.members.update', [$team, $member]) }}" class="flex flex-col gap-4">
-                                                @csrf
-                                                <input type="hidden" name="_form" value="{{ $modalId }}">
-                                                <h2 class="text-lg font-semibold">{{ $member->person->name }}</h2>
-                                                <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-sports-management::messages.name'), 'value' => $reopening === $modalId ? old('name') : $member->person->name]" />
-                                                <x-k::form.input :data="['name' => 'jersey_number', 'label' => __('kopling-sports-management::messages.jersey_number'), 'value' => $reopening === $modalId ? old('jersey_number') : $member->jersey_number]" />
-                                                <x-k::form.multi-select :data="['name' => 'positions', 'label' => __('kopling-sports-management::messages.positions_label'), 'options' => $positions, 'value' => $reopening === $modalId ? old('positions', []) : ($member->positions?->pluck('value') ?? [])]" />
-                                                <x-k::form.toggle :data="['name' => 'guest', 'label' => __('kopling-sports-management::messages.guest'), 'value' => $reopening === $modalId ? old('guest') : $member->guest]" />
-                                                @if ($reopening === $modalId && $errors->any())
-                                                    <p class="text-error text-sm">{{ $errors->first() }}</p>
-                                                @endif
-                                                <div class="flex gap-2">
-                                                    <button type="submit" class="btn btn-primary">{{ __('kopling-sports-management::messages.save') }}</button>
-                                                    <x-k::modal.cancel />
-                                                </div>
-                                            </form>
-                                            <div class="flex flex-wrap gap-2 mt-6 pt-4 border-t border-base-300">
-                                                @if ($playerLinks && ! $member->guest)
-                                                    <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.member-link', [$team, $member]) }}"
-                                                          hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.tasks.link.confirm_regenerate') }}">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm">{{ __('kopling-sports-management::messages.tasks.link.regenerate') }}</button>
-                                                    </form>
-                                                @endif
-                                                <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.members.destroy', [$team, $member]) }}"
-                                                      hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_member') }}">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-sports-management::messages.delete') }}</button>
-                                                </form>
-                                            </div>
-                                        </x-k::modal>
-                                    @endif
+                                    @include('kopling-sports-management::teams.member-edit')
                                 </li>
                             @endforeach
                         </ul>
+                    @endif
+
+                    @if ($formerMembers->isNotEmpty())
+                        <details class="collapse collapse-arrow bg-base-200">
+                            <summary class="collapse-title text-sm">{{ trans_choice('kopling-sports-management::messages.former_members', $formerMembers->count()) }}</summary>
+                            <ul class="collapse-content list">
+                                @foreach ($formerMembers as $member)
+                                    @php $modalId = 'modal-member-edit-'.$member->id; @endphp
+                                    <li class="list-row items-center">
+                                        <div class="list-col-grow min-w-0">
+                                            <div class="truncate opacity-80">{{ $member->person->name }}</div>
+                                            <div class="text-sm opacity-60">{{ __('kopling-sports-management::messages.left_on_date', ['date' => $member->left_on->translatedFormat('j F Y')]) }}</div>
+                                        </div>
+                                        @include('kopling-sports-management::teams.member-edit')
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </details>
                     @endif
                 </div>
             </section>

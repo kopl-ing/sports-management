@@ -7,6 +7,7 @@ use Kopling\SportsManagement\Controllers\MatchesController;
 use Kopling\SportsManagement\Controllers\StaffController;
 use Kopling\SportsManagement\Controllers\TasksController;
 use Kopling\SportsManagement\Controllers\TeamMembersController;
+use Kopling\SportsManagement\Controllers\TeamPeriodsController;
 use Kopling\SportsManagement\Controllers\TeamsController;
 use Kopling\SportsManagement\Controllers\TrackingController;
 
@@ -37,11 +38,18 @@ Route::middleware('can:kopling-sports-management::manage-teams')->group(function
     Route::post('/{team}/members/{teamMember}', [TeamMembersController::class, 'update'])->name('teams.members.update');
     Route::post('/{team}/members/{teamMember}/delete', [TeamMembersController::class, 'destroy'])->name('teams.members.destroy');
 
+    Route::post('/{team}/periods', [TeamPeriodsController::class, 'store'])->name('periods.store');
+    Route::post('/{team}/periods/{teamPeriod}', [TeamPeriodsController::class, 'update'])->name('periods.update');
+    Route::post('/{team}/periods/{teamPeriod}/delete', [TeamPeriodsController::class, 'destroy'])->name('periods.destroy');
+
     Route::get('/{team}/tasks', [TasksController::class, 'index'])->name('tasks.index');
+    Route::get('/{team}/tasks/balance', [TasksController::class, 'balance'])->name('tasks.balance');
     Route::get('/{team}/tasks/schedule-fields', [TasksController::class, 'scheduleFields'])->name('tasks.schedule-fields');
     Route::post('/{team}/tasks', [TasksController::class, 'store'])->middleware('throttle:60,60,sm-tasks')->name('tasks.store');
     Route::post('/{team}/tasks/link', [TasksController::class, 'regenerateLink'])->name('tasks.link');
     Route::post('/{team}/members/{teamMember}/tasks-link', [TasksController::class, 'regenerateMemberLink'])->name('tasks.member-link');
+    Route::post('/{team}/tasks/confirm', [TasksController::class, 'confirm'])->name('tasks.confirm');
+    Route::post('/{team}/tasks/enlistments/{enlistment}/outcome', [TasksController::class, 'outcome'])->name('tasks.outcome');
     Route::post('/{team}/tasks/enlistments/{enlistment}/delete', [TasksController::class, 'leave'])->name('tasks.leave');
     Route::post('/{team}/tasks/{task}/enlist', [TasksController::class, 'enlist'])->name('tasks.enlist');
     Route::post('/{team}/tasks/{task}', [TasksController::class, 'update'])->name('tasks.update');

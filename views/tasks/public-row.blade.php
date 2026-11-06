@@ -2,7 +2,7 @@
     $closed = $state === \Kopling\SportsManagement\TaskOccurrenceState::Cancelled || $state === \Kopling\SportsManagement\TaskOccurrenceState::Done;
     $modalId = 'modal-enlist-'.($occurrenceId ?? $row['id']);
 @endphp
-<li class="list-row items-center {{ $closed ? 'opacity-60' : '' }}">
+<li @if ($occurrenceId) id="occurrence-{{ $occurrenceId }}" @endif class="list-row items-center scroll-mt-20 {{ $closed ? 'opacity-60' : '' }}">
     <div class="list-col-grow min-w-0">
         <div class="font-semibold truncate">{{ $row['title'] }}</div>
         @if ($row['description'])

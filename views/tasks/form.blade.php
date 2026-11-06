@@ -16,6 +16,7 @@
         'time' => $hhmm($task?->time),
         'starts_on' => $task?->starts_on?->toDateString(),
         'ends_on' => $task?->ends_on?->toDateString(),
+        'within_periods' => $task?->within_periods ? '1' : '0',
         'enrolment' => $task?->enrolment->value,
     ];
     $field = fn (string $key, $current) => $filled ? old($key) : $current;
@@ -36,6 +37,9 @@
         <x-k::form.input :data="['name' => 'effort_amount', 'label' => __('kopling-sports-management::messages.tasks.effort_amount'), 'type' => 'number', 'value' => $field('effort_amount', $task?->effort_cents === null ? null : $task->effort_cents / 100)]" />
     </div>
     <x-k::form.select :data="['name' => 'undo_window', 'label' => __('kopling-sports-management::messages.tasks.undo_window_label'), 'options' => \Kopling\SportsManagement\TaskUndoWindow::options(), 'description' => __('kopling-sports-management::messages.tasks.undo_window_help'), 'value' => (string) $field('undo_window', $task?->undo_window->value ?? 'any_time'), 'required' => true]" />
+    @if ($team->tasks_approve_completion)
+        <x-k::form.toggle :data="['name' => 'confirm_each_occurrence', 'label' => __('kopling-sports-management::messages.tasks.confirm_each'), 'description' => __('kopling-sports-management::messages.tasks.confirm_each_help'), 'value' => $field('confirm_each_occurrence', $task?->confirm_each_occurrence)]" />
+    @endif
     <x-k::form.input :data="['name' => 'weight', 'label' => __('kopling-sports-management::messages.tasks.weight'), 'type' => 'number', 'description' => __('kopling-sports-management::messages.tasks.weight_help'), 'value' => $field('weight', $task?->weight ?? 1), 'required' => true]" />
     @if ($filled && $errors->any())
         <p class="text-error text-sm">{{ $errors->first() }}</p>

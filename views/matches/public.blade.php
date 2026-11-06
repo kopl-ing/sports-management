@@ -32,6 +32,14 @@
                 @if ($location)
                     <p class="text-sm opacity-60 whitespace-pre-line">{{ $location }}</p>
                 @endif
+                @if ($vacantTasks !== [])
+                    @php
+                        $vacant = collect($vacantTasks)->map(fn (array $task) => $task['min'] === null
+                            ? __('kopling-sports-management::messages.public.task_nobody', ['title' => $task['title']])
+                            : __('kopling-sports-management::messages.public.task_short', ['title' => $task['title'], 'count' => $task['count'], 'min' => $task['min']]))->join(', ');
+                    @endphp
+                    <p class="text-sm text-warning">{{ __('kopling-sports-management::messages.public.tasks_needed') }} {{ $vacant }}. <span class="opacity-80">{{ __('kopling-sports-management::messages.public.tasks_ask') }}</span></p>
+                @endif
             </div>
         </section>
 

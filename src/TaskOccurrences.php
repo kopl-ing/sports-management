@@ -48,6 +48,27 @@ class TaskOccurrences
             ->each(fn (Task $task) => self::sync($task->setRelation('team', $team)));
     }
 
+    public static function syncPeriodTasks(Team $team): void
+    {
+        $team->tasks()->where('schedule', TaskSchedule::Recurring)->where('within_periods', true)->get()
+            ->each(fn (Task $task) => self::sync($task->setRelation('team', $team)));
+    }
+
+    /**
+     * @param array<int, CarbonImmutable> $dates
+     * @return array<int, CarbonImmutable>
+     */
+    private static function withinPeriods(Task $task, array $dates): array
+    {
+        if (! $task->within_periods) {
+            return $dates;
+        }
+
+        $periods = $task->team->periods()->get();
+
+        return array_values(array_filter($dates, fn (CarbonImmutable $date) => $periods->contains(fn (TeamPeriod $period) => $period->contains($date))));
+    }
+
     /**
      * @return array<string, array{match_id: ?string, date: string, time: ?string}>
      */
@@ -67,7 +88,7 @@ class TaskOccurrences
                 ->all(),
             default => array_map(
                 fn (CarbonImmutable $date) => ['match_id' => null, 'date' => $date->toDateString(), 'time' => $task->time],
-                $task->recurrenceRule()?->dates($task->starts_on, $task->ends_on) ?? [],
+                self::withinPeriods($task, $task->recurrenceRule()?->dates($task->starts_on, $task->ends_on) ?? []),
             ),
         };
 

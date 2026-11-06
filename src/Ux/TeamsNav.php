@@ -10,6 +10,7 @@ use Illuminate\View\Component;
 use Kopling\Core\Ux\Context;
 use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\StaffRole;
+use Kopling\SportsManagement\TaskBoard;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamMatch;
 
@@ -57,6 +58,7 @@ class TeamsNav extends Component
         return view('kopling-sports-management::ux.teams-nav', [
             'teams' => $teams,
             'matches' => $matches,
+            'shortHanded' => TaskBoard::shortHanded($coached)->take(self::MATCH_COUNT),
             'currentTeam' => $this->request->route('team'),
             'currentMatch' => $this->request->route('teamMatch'),
         ]);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\SportsManagement\Controllers;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,7 +25,7 @@ class TeamMembersController
             'positions' => ['sometimes', 'array'],
             'positions.*' => [Rule::enum(Position::class)->only($team->sport->config()->zones())],
             'guest' => ['sometimes', 'boolean'],
-        ]);
+        ], [], FieldNames::all());
 
         $person = Person::create(['name' => $data['name']]);
 
@@ -50,7 +51,8 @@ class TeamMembersController
             'positions' => ['sometimes', 'array'],
             'positions.*' => [Rule::enum(Position::class)->only($team->sport->config()->zones())],
             'guest' => ['sometimes', 'boolean'],
-        ]);
+            'left_on' => ['nullable', 'date_format:Y-m-d'],
+        ], [], FieldNames::all());
 
         $teamMember->person->update(['name' => $data['name']]);
 
@@ -59,6 +61,13 @@ class TeamMembersController
             'positions' => $data['positions'] ?? [],
             'guest' => $data['guest'] ?? false,
         ]);
+
+        $leftOn = isset($data['left_on']) ? CarbonImmutable::parse($data['left_on']) : null;
+        if ($leftOn === null) {
+            $teamMember->update(['left_on' => null]);
+        } elseif ($teamMember->left_on === null || ! $leftOn->equalTo($teamMember->left_on)) {
+            $teamMember->leaveOn($leftOn, $request->user());
+        }
 
         return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
     }
