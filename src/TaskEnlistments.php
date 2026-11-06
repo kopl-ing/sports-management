@@ -49,6 +49,10 @@ class TaskEnlistments
             ]);
             self::log($enlistment, TaskEnlistmentAction::Enlisted, $by);
 
+            if ($by !== null && $occurrence?->hasPassed() && $task->team->tasks_approve_completion) {
+                $enlistment->outcomes()->create(['occurrence_id' => $occurrence->id, 'outcome' => TaskOutcome::Done, 'confirmed_by' => $by->id]);
+            }
+
             return $enlistment;
         });
     }

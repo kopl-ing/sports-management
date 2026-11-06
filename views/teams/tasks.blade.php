@@ -27,6 +27,9 @@
                             <a href="{{ route('kopling-sports-management::sports-management/tasks.index', ['team' => $team, 'filter' => 'open']) }}#occurrence-{{ $row['occurrence']->id }}" class="link link-hover">
                                 {{ $row['occurrence']->startsAt()->translatedFormat($row['occurrence']->time === null ? 'D j M' : 'D j M, H:i') }}
                                 &middot; {{ $row['occurrence']->task->title }}
+                                @if ($row['occurrence']->matchLabel())
+                                    ({{ $row['occurrence']->matchLabel() }})
+                                @endif
                                 &middot; {{ __('kopling-sports-management::messages.tasks.soon.count', ['count' => $row['count'], 'min' => $row['occurrence']->task->min_people]) }}
                             </a>
                         </li>

@@ -43,7 +43,7 @@ class TaskBoard
         $this->hasLater = (clone $query)->whereDate('date', '>', $until->toDateString())->exists();
         $this->occurrences = $query
             ->whereDate('date', '<=', $until->toDateString())
-            ->with(['enlistments.member.person', 'enlistments.creator'])
+            ->with(['match', 'enlistments.member.person', 'enlistments.creator'])
             ->orderBy('date')
             ->orderBy('time')
             ->get()
@@ -72,7 +72,7 @@ class TaskBoard
             ->whereNull('cancelled_at')
             ->whereDate('date', '>=', today()->toDateString())
             ->whereDate('date', '<=', today()->addDays($days)->toDateString())
-            ->with('task.wholeTaskEnlistments')
+            ->with(['task.wholeTaskEnlistments', 'match'])
             ->withCount('enlistments')
             ->orderBy('date')
             ->orderBy('time')

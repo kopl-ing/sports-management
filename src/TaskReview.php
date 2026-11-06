@@ -38,7 +38,7 @@ class TaskReview
         $this->hasEarlier = ! $pendingOnly && (clone $query)->whereDate('date', '<', $from->toDateString())->exists();
         $this->occurrences = $query
             ->when(! $pendingOnly, fn ($query) => $query->whereDate('date', '>=', $from->toDateString()))
-            ->with(['enlistments.member.person', 'enlistments.creator', 'enlistments.outcomes'])
+            ->with(['match', 'enlistments.member.person', 'enlistments.creator', 'enlistments.outcomes'])
             ->orderByDesc('date')
             ->orderByDesc('time')
             ->get()

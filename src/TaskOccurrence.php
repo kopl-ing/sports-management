@@ -57,6 +57,13 @@ class TaskOccurrence extends Model
         return $this->time === null ? $this->date : $this->date->setTimeFromTimeString($this->time);
     }
 
+    public function matchLabel(): ?string
+    {
+        $match = $this->match;
+
+        return $match === null ? null : __('kopling-sports-management::messages.tasks.match.'.$match->home_away->value, ['opponent' => $match->opponent_name]);
+    }
+
     public function hasPassed(): bool
     {
         return $this->time === null ? $this->date->lt(CarbonImmutable::today()) : $this->startsAt()->lt(now());

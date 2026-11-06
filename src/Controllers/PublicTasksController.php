@@ -128,6 +128,7 @@ class PublicTasksController
                 return [
                     'id' => $occurrence->id,
                     'when' => $when,
+                    'match' => $occurrence->matchLabel(),
                     'details' => $this->details($occurrence->task, true),
                     'undo' => $this->undoRule($occurrence->task, false),
                     'task_id' => $occurrence->task_id,
@@ -154,6 +155,7 @@ class PublicTasksController
                 'description' => $task->description,
                 'schedule' => $task->scheduleSummary(),
                 'when' => $task->scheduleSummary(),
+                'match' => null,
                 'details' => $this->details($task, false),
                 'undo' => $this->undoRule($task, true),
                 'count' => $board->activeEnlistments($task)->count(),

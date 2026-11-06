@@ -32,6 +32,9 @@
                                 <a href="#occurrence-{{ $row['id'] }}" class="link link-hover">
                                     {{ $row['date']->translatedFormat('D j M') }}@if ($row['time']), {{ $row['time'] }}@endif
                                     &middot; {{ $row['title'] }}
+                                    @if ($row['match'])
+                                        ({{ $row['match'] }})
+                                    @endif
                                     &middot; {{ __('kopling-sports-management::messages.tasks.soon.count', ['count' => $row['count'], 'min' => $row['min']]) }}
                                 </a>
                             </li>

@@ -388,6 +388,10 @@ return [
         'staff_only_help' => 'Parents still see the task and who does it, but can\'t take it on or back out through the link.',
         'staff_only_note' => 'Assigned by staff',
         'staff_only_closed' => 'Staff assign people to this one.',
+        'match' => [
+            'home' => 'home vs :opponent',
+            'away' => 'away at :opponent',
+        ],
         'former_players' => 'Former players',
         'soon' => [
             'heading' => 'People needed this week',

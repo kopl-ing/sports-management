@@ -2,7 +2,12 @@
     <div class="list-col-grow min-w-0 flex flex-col gap-2">
         <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
-                <div class="font-semibold">{{ $task->title }}</div>
+                <div class="font-semibold">
+                    {{ $task->title }}
+                    @if ($occurrence?->matchLabel())
+                        <span class="font-normal opacity-60">&middot; {{ $occurrence->matchLabel() }}</span>
+                    @endif
+                </div>
                 <div class="text-sm opacity-60">{{ $when }}</div>
             </div>
             <span class="badge badge-sm shrink-0 whitespace-nowrap {{ $state?->badgeClass() ?? 'badge-ghost' }}" @if ($state) title="{{ $state->label() }}" @endif>

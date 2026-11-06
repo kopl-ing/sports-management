@@ -54,6 +54,9 @@
                         <span>{{ $teams->count() > 1 ? $occurrence->task->team->name.' · '.$occurrence->task->title : $occurrence->task->title }}</span>
                         <span class="text-xs opacity-60">
                             {{ $occurrence->startsAt()->translatedFormat($occurrence->time === null ? 'D j M' : 'D j M, H:i') }}
+                            @if ($occurrence->matchLabel())
+                                &middot; {{ $occurrence->matchLabel() }}
+                            @endif
                             &middot; {{ __('kopling-sports-management::messages.tasks.soon.count', ['count' => $row['count'], 'min' => $occurrence->task->min_people]) }}
                         </span>
                     </span>

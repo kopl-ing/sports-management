@@ -8,8 +8,8 @@
         @if ($row['description'])
             <p class="text-sm opacity-60 truncate">{{ $row['description'] }}</p>
         @endif
-        @if ($when)
-            <div class="text-sm opacity-60">{{ $when }}</div>
+        @if ($when || $row['match'])
+            <div class="text-sm opacity-60">{{ collect([$when, $row['match']])->filter()->join(' · ') }}</div>
         @endif
         @if ($row['people'] !== [])
             <ul class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
@@ -48,7 +48,7 @@
                 @endif
                 <div>
                     <h2 class="text-lg font-semibold">{{ $row['title'] }}</h2>
-                    <p class="text-sm opacity-60">{{ $row['when'] }}</p>
+                    <p class="text-sm opacity-60">{{ collect([$row['when'], $row['match']])->filter()->join(' · ') }}</p>
                     @if ($row['details'] !== '')
                         <p class="text-sm opacity-60">{{ $row['details'] }}</p>
                     @endif

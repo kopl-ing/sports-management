@@ -27,7 +27,12 @@
                     <div class="list-col-grow min-w-0 flex flex-col gap-2">
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0">
-                                <div class="font-semibold">{{ $occurrence->task->title }}</div>
+                                <div class="font-semibold">
+                                    {{ $occurrence->task->title }}
+                                    @if ($occurrence->matchLabel())
+                                        <span class="font-normal opacity-60">&middot; {{ $occurrence->matchLabel() }}</span>
+                                    @endif
+                                </div>
                                 <div class="text-sm opacity-60">{{ $occurrence->startsAt()->translatedFormat($occurrence->time === null ? 'D j M' : 'D j M, H:i') }}</div>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
@@ -58,8 +63,9 @@
                                         @if ($enlistment->note)
                                             <span class="opacity-60 truncate">&middot; {{ $enlistment->note }}</span>
                                         @endif
+                                        <div class="flex items-center gap-1 ms-auto">
                                         @if ($approving)
-                                            <div class="join ms-auto">
+                                            <div class="join">
                                                 @foreach (\Kopling\SportsManagement\TaskOutcome::cases() as $option)
                                                     <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.outcome', [$team, $enlistment]) }}" class="join-item">
                                                         @csrf
@@ -71,9 +77,32 @@
                                                 @endforeach
                                             </div>
                                         @endif
+                                        @unless ($enlistment->isWholeTask())
+                                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.leave', [$team, $enlistment]) }}">
+                                                @csrf
+                                                <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.remove') }}</button>
+                                            </form>
+                                        @endunless
+                                        </div>
                                     </li>
                                 @endforeach
                             </ul>
+                        @endif
+
+                        @if ($occurrence->task->enrolment === \Kopling\SportsManagement\TaskEnrolment::PerOccurrence && $players !== [])
+                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.enlist', [$team, $occurrence->task]) }}" class="join w-full" autocomplete="off">
+                                @csrf
+                                <input type="hidden" name="occurrence_id" value="{{ $occurrence->id }}">
+                                <select name="team_member_id" class="select select-sm join-item w-auto" required aria-label="{{ __('kopling-sports-management::messages.tasks.assign_player') }}">
+                                    @foreach ($players as $id => $name)
+                                        <option value="{{ $id }}">{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                                <input type="text" name="note" maxlength="100" class="input input-sm join-item flex-1 min-w-0"
+                                       placeholder="{{ __('kopling-sports-management::messages.tasks.link.note_placeholder') }}"
+                                       aria-label="{{ __('kopling-sports-management::messages.tasks.link.note_placeholder') }}">
+                                <button type="submit" class="btn btn-sm join-item">{{ __('kopling-sports-management::messages.tasks.assign') }}</button>
+                            </form>
                         @endif
                     </div>
                 </li>

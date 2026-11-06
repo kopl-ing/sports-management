@@ -48,6 +48,7 @@ class TasksController
                 'team' => $team,
                 'filter' => $filter,
                 'review' => $review,
+                'players' => $this->players($team),
                 'weeks' => $review->occurrences->groupBy(fn (TaskOccurrence $occurrence) => $occurrence->date->startOfWeek()->toDateString()),
                 'laterUrl' => $review->hasEarlier
                     ? route('kopling-sports-management::sports-management/tasks.index', ['team' => $team, 'filter' => $filter, 'weeks' => $weeks + TaskBoard::WEEKS])
@@ -66,9 +67,7 @@ class TasksController
             'board' => $board,
             'wholeTasks' => $board->wholeTasks()->load(['events' => fn ($query) => $query->whereNull('occurrence_id')->with(['member.person', 'creator'])]),
             'weeks' => $occurrences->groupBy(fn (TaskOccurrence $occurrence) => $occurrence->date->startOfWeek()->toDateString()),
-            'players' => TeamMember::sorted($team->members()->onTeamAt(now())->where('guest', false)->with('person')->get())
-                ->mapWithKeys(fn (TeamMember $member) => [$member->id => $member->person->name])
-                ->all(),
+            'players' => $this->players($team),
             'filter' => $filter,
             'laterUrl' => $board->hasLater
                 ? route('kopling-sports-management::sports-management/tasks.index', ['team' => $team, 'weeks' => $weeks + TaskBoard::WEEKS] + ($filter ? ['filter' => $filter] : []))
@@ -203,6 +202,16 @@ class TasksController
         }
 
         return view('kopling-sports-management::tasks.schedule-fields', ['team' => $team, 'values' => $values]);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function players(Team $team): array
+    {
+        return TeamMember::sorted($team->members()->onTeamAt(now())->where('guest', false)->with('person')->get())
+            ->mapWithKeys(fn (TeamMember $member) => [$member->id => $member->person->name])
+            ->all();
     }
 
     private function authorizeCoach(Request $request, Team $team): void
