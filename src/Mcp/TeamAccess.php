@@ -11,11 +11,11 @@ use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\Team;
 
 /**
- * Which teams an MCP token reaches: staff only teams that opted in; `administer-teams` every team, hidden ones included.
+ * Which teams an MCP token reaches: staff only teams that opted in; `administer-teams-via-mcp` every team, hidden ones included.
  */
 class TeamAccess
 {
-    public const ADMIN = 'kopling-sports-management::administer-teams';
+    public const ADMIN = 'kopling-sports-management::administer-teams-via-mcp';
 
     public static function isAdmin(Person $person): bool
     {

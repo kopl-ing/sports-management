@@ -13,9 +13,9 @@ return [
         'label' => 'Wedstrijden beheren',
         'description' => 'Wedstrijden plannen en beschikbaarheid bijhouden voor elk team waar je bij hoort.',
     ],
-    'administer-teams' => [
-        'label' => 'Alle teams beheren',
-        'description' => 'Via een AI-assistent: elk team zien en ermee werken, ook teams die het niet toestaan of door moderatie verborgen zijn, voor moderatie en analyses. Elke actie wordt vastgelegd en is zichtbaar voor de eigenaar van het team.',
+    'administer-teams-via-mcp' => [
+        'label' => 'Alle teams via een AI-assistent',
+        'description' => 'Met een AI-assistent elk team zien en ermee werken, ook teams die het niet toestaan of door moderatie verborgen zijn, voor moderatie en analyses. Elke actie wordt vastgelegd en is zichtbaar voor de eigenaar van het team.',
     ],
     'track-matches' => [
         'label' => 'Wedstrijden bijhouden',

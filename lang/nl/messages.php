@@ -287,7 +287,7 @@ return [
 
     'mcp' => [
         'enabled' => 'AI-assistenten',
-        'enabled_help' => 'Staf van dit team mag een AI-assistent (zoals Claude) dit team laten inzien en plannen. Wat de assistent leest, ook namen van spelers, gaat naar de aanbieder die zij kozen. Sitebeheerders kunnen het team voor moderatie altijd bereiken; hun acties zie je hieronder.',
+        'enabled_help' => 'Staf van dit team mag een AI-assistent (zoals Claude) dit team laten inzien en plannen. Wat de assistent leest, ook namen van spelers, gaat naar de aanbieder die zij kozen. Sitebeheerders met het recht \'Alle teams via een AI-assistent\' kunnen dit team ook zo bereiken; hun acties zie je hieronder.',
         'read_scope' => 'Je teams, wedstrijden, taken en de verdeling zien',
         'write_scope' => 'Wedstrijden plannen, tijdens een wedstrijd score en wissels bijhouden, spelers en taken aanpassen en mensen indelen',
     ],

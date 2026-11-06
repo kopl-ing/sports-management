@@ -13,9 +13,9 @@ return [
         'label' => 'Manage matches',
         'description' => 'Plan matches and mark player availability for any team held.',
     ],
-    'administer-teams' => [
-        'label' => 'Administer all teams',
-        'description' => 'Through an AI assistant: see and work with every team, including teams that did not opt in or are hidden by moderation, for moderation and analytics. Every action is logged and visible to the team\'s owner.',
+    'administer-teams-via-mcp' => [
+        'label' => 'All teams through an AI assistant',
+        'description' => 'With an AI assistant, see and work with every team, including teams that did not opt in or are hidden by moderation, for moderation and analytics. Every action is logged and visible to the team\'s owner.',
     ],
     'track-matches' => [
         'label' => 'Track matches',

@@ -90,9 +90,9 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                 description: __('kopling-sports-management::permissions.manage-matches.description'),
             ),
             new Permission(
-                id: 'administer-teams',
-                label: __('kopling-sports-management::permissions.administer-teams.label'),
-                description: __('kopling-sports-management::permissions.administer-teams.description'),
+                id: 'administer-teams-via-mcp',
+                label: __('kopling-sports-management::permissions.administer-teams-via-mcp.label'),
+                description: __('kopling-sports-management::permissions.administer-teams-via-mcp.description'),
             ),
             new Permission(
                 id: 'track-matches',
