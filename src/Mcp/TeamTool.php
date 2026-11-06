@@ -12,6 +12,7 @@ use Kopling\SportsManagement\Task;
 use Kopling\SportsManagement\TaskEnlistment;
 use Kopling\SportsManagement\TaskOccurrence;
 use Kopling\SportsManagement\Team;
+use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMatch;
 use Kopling\SportsManagement\TeamMember;
 use Laravel\Mcp\Request;
@@ -118,6 +119,29 @@ abstract class TeamTool extends Tool
             'positions' => $member->positions?->pluck('value')->all() ?: null,
             'guest' => $member->guest ?: null,
             'left_on' => $member->left_on?->toDateString(),
+        ], fn ($value) => $value !== null);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected static function formatData(?TeamFormatPreset $preset, ?int $playMinutes = null): ?array
+    {
+        if ($preset === null) {
+            return null;
+        }
+
+        $minutes = $playMinutes ?? $preset->play_minutes;
+        $periods = $preset->breaks === null ? null : $preset->breaks + 1;
+
+        return array_filter([
+            'name' => $preset->name,
+            'players_on_field' => $preset->players_on_field,
+            'play_minutes' => $minutes,
+            'play_periods' => $periods,
+            'minutes_per_period' => $minutes === null || $periods === null ? null : round($minutes / $periods, 1),
+            'substitutions' => 'At any moment, during play or a break, with no fixed substitution moments; players can come back on.',
+            'rules_url' => $preset->rules_url,
         ], fn ($value) => $value !== null);
     }
 }

@@ -239,6 +239,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                     Mcp\Tools\UpdateMatch::class,
                     Mcp\Tools\CancelMatch::class,
                     Mcp\Tools\SetAvailability::class,
+                    Mcp\Tools\SetLineup::class,
                     Mcp\Tools\AddPlayer::class,
                     Mcp\Tools\UpdatePlayer::class,
                     Mcp\Tools\CreateTask::class,

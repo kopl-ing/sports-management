@@ -10,6 +10,7 @@ use Kopling\SportsManagement\MatchGoal;
 use Kopling\SportsManagement\MatchLineup;
 use Kopling\SportsManagement\Mcp\TeamAccess;
 use Kopling\SportsManagement\Mcp\TeamTool;
+use Kopling\SportsManagement\Position;
 use Kopling\SportsManagement\TeamMember;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -20,7 +21,7 @@ class GetMatch extends TeamTool
 {
     protected string $name = 'get-match';
 
-    protected string $description = 'One match in full: availability, lineup, referee, and goals with minute and scorer once played.';
+    protected string $description = 'One match in full: its format (players on the field, play periods and their length, substitution rules), availability, starting lineup and the zones it uses, referee, and goals with minute and scorer once played.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -47,12 +48,14 @@ class GetMatch extends TeamTool
 
         return Response::json(array_filter([
             ...ListMatches::summary($team, $match),
+            'format' => self::formatData($match->effectiveFormatPreset(), $match->effectivePlayMinutes()),
             'referee' => $match->referee?->name,
             'referee_duties' => $match->referee ? collect($match->referee_duties)->map->value->all() : null,
             'availability' => TeamMember::sorted($team->members)->map(fn (TeamMember $member) => [
                 'player' => $member->person->name,
                 'status' => $match->availabilities->firstWhere('team_member_id', $member->id)?->status->value,
             ])->values()->all(),
+            'zones' => collect($match->sportConfig()->zones($match->effectiveFormatPreset()))->mapWithKeys(fn (Position $zone) => [$zone->value => $zone->label($team->sport)])->all(),
             'lineup' => $match->lineup->map(fn (MatchLineup $slot) => ['player' => $name($slot->team_member_id), 'zone' => $slot->zone?->value])->values()->all(),
             'goals' => $match->periods->isEmpty() ? null : $match->goals->map(fn (MatchGoal $goal) => array_filter([
                 'minute' => intdiv($timeline->matchSecond($periods[$goal->period_id], $goal->offset_seconds), 60),

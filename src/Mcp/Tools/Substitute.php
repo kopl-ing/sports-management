@@ -16,7 +16,7 @@ class Substitute extends MatchTool
 {
     protected string $name = 'substitute';
 
-    protected string $description = 'Changes who is on the field. Both players: the one coming on takes over the zone of the one going off (two field players swap zones). Only off_player_id: off without replacement. Only on_player_id: comes on in the given zone. A zone given with both moves the incoming player there afterwards.';
+    protected string $description = 'Changes who is on the field. Substitutions can happen at any moment, during play or a break, as often as needed, and a player can come back on. Both players: the one coming on takes over the zone of the one going off (two field players swap zones). Only off_player_id: off without replacement. Only on_player_id: comes on in the given zone. A zone given with both moves the incoming player there afterwards.';
 
     public function schema(JsonSchema $schema): array
     {

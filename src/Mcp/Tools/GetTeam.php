@@ -18,7 +18,7 @@ class GetTeam extends TeamTool
 {
     protected string $name = 'get-team';
 
-    protected string $description = 'A team\'s details: staff, season periods and settings; for coaches also the roster (current players first, former players flagged with left_on).';
+    protected string $description = 'A team\'s details: match format (players on the field, play time split into periods, substitution rules), staff, season periods and settings; for coaches also the roster (current players first, former players flagged with left_on). Base lineups and playing-time plans on the format, never on assumed halves.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -37,7 +37,7 @@ class GetTeam extends TeamTool
             'club' => $team->club,
             'season' => $team->season,
             'sport' => $team->sport->value,
-            'format' => $team->formatPreset?->name,
+            'format' => self::formatData($team->formatPreset),
             'hidden_by_moderation' => $team->trashed() ?: null,
             'staff' => $team->staff->map(fn ($person) => [
                 'name' => $person->name,
