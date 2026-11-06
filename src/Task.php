@@ -98,7 +98,7 @@ class Task extends Model
 
     public function wholeTaskEnlistments(): HasMany
     {
-        return $this->enlistments()->whereNull('occurrence_id')->orderBy('created_at');
+        return $this->enlistments()->whereNull('occurrence_id')->with('skips')->orderBy('created_at');
     }
 
     public function events(): HasMany

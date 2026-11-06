@@ -26,7 +26,7 @@ class TaskBalance
         ]])->all();
 
         $tasks = $team->tasks()
-            ->with(['occurrences' => fn ($query) => $query->whereNull('cancelled_at'), 'enlistments.outcomes'])
+            ->with(['occurrences' => fn ($query) => $query->whereNull('cancelled_at'), 'enlistments.outcomes', 'enlistments.skips'])
             ->get()
             ->each(function (Task $task) use ($team) {
                 $task->setRelation('team', $team);

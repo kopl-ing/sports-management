@@ -85,14 +85,31 @@ class TaskEnlistment extends Model
         return $this->starts_on ?? CarbonImmutable::parse($this->created_at)->startOfDay();
     }
 
+    public function skips(): HasMany
+    {
+        return $this->hasMany(TaskEnlistmentSkip::class, 'enlistment_id');
+    }
+
     public function covers(TaskOccurrence $occurrence): bool
     {
         if (! $this->isWholeTask()) {
             return $this->occurrence_id === $occurrence->id;
         }
 
-        return $occurrence->date->gte($this->startsOn())
+        return $this->spans($occurrence) && ! $this->skips->contains('occurrence_id', $occurrence->id);
+    }
+
+    /** A season-long sign-up's own date range, ignoring the dates its person is off. */
+    public function spans(TaskOccurrence $occurrence): bool
+    {
+        return $this->isWholeTask()
+            && $occurrence->date->gte($this->startsOn())
             && ($this->ended_on === null || $occurrence->date->lte($this->ended_on));
+    }
+
+    public function isSkippedOn(TaskOccurrence $occurrence): bool
+    {
+        return $this->spans($occurrence) && $this->skips->contains('occurrence_id', $occurrence->id);
     }
 
     public function isActive(): bool

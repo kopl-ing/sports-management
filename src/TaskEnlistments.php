@@ -15,9 +15,10 @@ class TaskEnlistments
     /**
      * `$by` is the staff member enlisting on the player's behalf; null when it came through a link.
      */
-    public static function enlist(Task $task, ?TaskOccurrence $occurrence, TeamMember $member, ?string $note, ?Person $by = null): TaskEnlistment
+    public static function enlist(Task $task, ?TaskOccurrence $occurrence, TeamMember $member, ?string $note, ?Person $by = null, ?CarbonImmutable $startsOn = null): TaskEnlistment
     {
-        if (($occurrence === null) !== ($task->enrolment === TaskEnrolment::WholeTask)) {
+        $perDate = $task->enrolment === TaskEnrolment::PerOccurrence;
+        if (($occurrence === null && $perDate) || ($occurrence !== null && $task->schedule === TaskSchedule::Season)) {
             abort(404);
         }
 
@@ -25,7 +26,7 @@ class TaskEnlistments
             throw ValidationException::withMessages(['enlist' => __('kopling-sports-management::messages.tasks.staff_only_closed')]);
         }
 
-        return DB::transaction(function () use ($task, $occurrence, $member, $note, $by) {
+        return DB::transaction(function () use ($task, $occurrence, $member, $note, $by, $startsOn) {
             if ($occurrence !== null) {
                 $occurrence = TaskOccurrence::whereKey($occurrence->id)->lockForUpdate()->firstOrFail()->setRelation('task', $task);
                 $state = $occurrence->state(self::count($occurrence, $task->wholeTaskEnlistments()->get()));
@@ -45,6 +46,7 @@ class TaskEnlistments
                 'occurrence_id' => $occurrence?->id,
                 'team_member_id' => $member->id,
                 'note' => $note,
+                'starts_on' => $occurrence === null && $by !== null ? $startsOn : null,
                 'created_by' => $by?->id,
             ]);
             self::log($enlistment, TaskEnlistmentAction::Enlisted, $by);
@@ -76,6 +78,11 @@ class TaskEnlistments
             }
 
             $next = self::nextOccurrence($enlistment->task);
+            if ($next === null && $by !== null) {
+                $enlistment->delete();
+
+                return;
+            }
             self::end($enlistment, $next === null ? CarbonImmutable::today() : $next->date->subDay());
         });
     }
@@ -156,6 +163,56 @@ class TaskEnlistments
     }
 
     /**
+     * Takes the regular person of a season-long sign-up off one date; through the link only within the undo window.
+     */
+    public static function skip(TaskEnlistment $enlistment, TaskOccurrence $occurrence, ?Person $by = null): void
+    {
+        abort_unless($enlistment->spans($occurrence) && $occurrence->task_id === $enlistment->task_id, 404);
+        if ($by === null && ! self::canChangeDate($enlistment->task, $occurrence)) {
+            throw ValidationException::withMessages(['enlist' => __('kopling-sports-management::messages.tasks.undo_closed')]);
+        }
+
+        DB::transaction(function () use ($enlistment, $occurrence, $by) {
+            $enlistment->skips()->firstOrCreate(['occurrence_id' => $occurrence->id], ['created_by' => $by?->id]);
+            $enlistment->outcomes()->where('occurrence_id', $occurrence->id)->delete();
+            self::log($enlistment, TaskEnlistmentAction::Left, $by, $occurrence);
+        });
+    }
+
+    /**
+     * Puts the regular person back on a date they were taken off, if there's still room.
+     */
+    public static function restore(TaskEnlistment $enlistment, TaskOccurrence $occurrence, ?Person $by = null): void
+    {
+        abort_unless($enlistment->isSkippedOn($occurrence) && $occurrence->task_id === $enlistment->task_id, 404);
+        $task = $enlistment->task;
+        if ($by === null && ($task->staff_only || $occurrence->hasPassed() || $occurrence->cancelled_at !== null)) {
+            throw ValidationException::withMessages(['enlist' => __('kopling-sports-management::messages.tasks.closed')]);
+        }
+
+        DB::transaction(function () use ($enlistment, $occurrence, $task, $by) {
+            $locked = TaskOccurrence::whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            if ($task->max_people !== null && self::count($locked, $task->wholeTaskEnlistments()->get()) >= $task->max_people) {
+                throw ValidationException::withMessages(['enlist' => __('kopling-sports-management::messages.tasks.closed')]);
+            }
+
+            $enlistment->skips()->where('occurrence_id', $occurrence->id)->delete();
+            self::log($enlistment, TaskEnlistmentAction::Enlisted, $by, $occurrence);
+        });
+    }
+
+    /**
+     * Whether the link may still change who does this date.
+     */
+    public static function canChangeDate(Task $task, TaskOccurrence $occurrence): bool
+    {
+        return ! $task->staff_only
+            && $occurrence->cancelled_at === null
+            && ! $occurrence->hasPassed()
+            && $task->undo_window->allowsLeaving($occurrence->startsAt());
+    }
+
+    /**
      * @param Collection<int, TaskEnlistment> $wholeTask the task's whole-task enlistments
      */
     public static function count(TaskOccurrence $occurrence, Collection $wholeTask): int
@@ -170,11 +227,11 @@ class TaskEnlistments
         return $task->upcomingOccurrences()->get()->first(fn (TaskOccurrence $occurrence) => ! $occurrence->hasPassed());
     }
 
-    private static function log(TaskEnlistment $enlistment, TaskEnlistmentAction $action, ?Person $by): void
+    private static function log(TaskEnlistment $enlistment, TaskEnlistmentAction $action, ?Person $by, ?TaskOccurrence $on = null): void
     {
         TaskEnlistmentEvent::create([
             'task_id' => $enlistment->task_id,
-            'occurrence_id' => $enlistment->occurrence_id,
+            'occurrence_id' => $on?->id ?? $enlistment->occurrence_id,
             'team_member_id' => $enlistment->team_member_id,
             'action' => $action,
             'note' => $enlistment->note,

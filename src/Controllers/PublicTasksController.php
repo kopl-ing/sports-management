@@ -50,6 +50,7 @@ class PublicTasksController
             'storageKey' => 'kopling-sm-tasks:'.$token,
             'enlistUrl' => route('kopling-sports-management::live/tasks.team.enlist', [$token, $member->id]),
             'leaveUrl' => fn (string $enlistment) => route('kopling-sports-management::live/tasks.team.leave', [$token, $member->id, $enlistment]),
+            'dateUrl' => fn (string $enlistment) => route('kopling-sports-management::live/tasks.team.date', [$token, $member->id, $enlistment]),
         ]);
     }
 
@@ -77,6 +78,7 @@ class PublicTasksController
             'storageKey' => null,
             'enlistUrl' => route('kopling-sports-management::live/tasks.player.enlist', $token),
             'leaveUrl' => fn (string $enlistment) => route('kopling-sports-management::live/tasks.player.leave', [$token, $enlistment]),
+            'dateUrl' => fn (string $enlistment) => route('kopling-sports-management::live/tasks.player.date', [$token, $enlistment]),
         ]);
     }
 
@@ -94,6 +96,35 @@ class PublicTasksController
         return $this->leave($member, $enlistment, route('kopling-sports-management::live/tasks.player', $token));
     }
 
+    public function teamDate(Request $request, string $token, string $member, TaskEnlistment $enlistment): RedirectResponse
+    {
+        [, $member] = $this->teamMember($token, $member);
+
+        return $this->changeDate($request, $member, $enlistment, route('kopling-sports-management::live/tasks.team.player', [$token, $member->id]));
+    }
+
+    public function playerDate(Request $request, string $token, TaskEnlistment $enlistment): RedirectResponse
+    {
+        $member = TeamMember::findByTasksToken($token) ?? abort(404);
+
+        return $this->changeDate($request, $member, $enlistment, route('kopling-sports-management::live/tasks.player', $token));
+    }
+
+    private function changeDate(Request $request, TeamMember $member, TaskEnlistment $enlistment, string $back): RedirectResponse
+    {
+        abort_unless($enlistment->team_member_id === $member->id && $enlistment->isWholeTask(), 404);
+        $data = $request->validate(['occurrence_id' => ['required', 'uuid'], 'action' => ['required', 'in:skip,restore']]);
+        $occurrence = $enlistment->task->occurrences()->whereKey($data['occurrence_id'])->first() ?? abort(404);
+
+        try {
+            $data['action'] === 'skip' ? TaskEnlistments::skip($enlistment, $occurrence) : TaskEnlistments::restore($enlistment, $occurrence);
+        } catch (ValidationException $e) {
+            return redirect()->to($back)->withErrors($e->errors());
+        }
+
+        return redirect()->to($back);
+    }
+
     /**
      * @return array{0: Team, 1: TeamMember}
      */
@@ -106,22 +137,24 @@ class PublicTasksController
     }
 
     /**
-     * @param array{url: string, pickUrl: ?string, storageKey: ?string, enlistUrl: string, leaveUrl: \Closure(string): string} $links
+     * @param array{url: string, pickUrl: ?string, storageKey: ?string, enlistUrl: string, leaveUrl: \Closure(string): string, dateUrl: \Closure(string): string} $links
      */
     private function show(Request $request, Team $team, TeamMember $member, array $links): Response
     {
         $weeks = min(max($request->integer('weeks', TaskBoard::WEEKS), TaskBoard::WEEKS), 52);
         $board = new TaskBoard($team, $weeks);
         $mine = fn (TaskEnlistment $enlistment) => $enlistment->team_member_id === $member->id;
-        $people = fn ($enlistments) => $enlistments->map(fn (TaskEnlistment $enlistment) => $this->shown($enlistment->member) + [
+        $people = fn ($enlistments, ?TaskOccurrence $on = null) => $enlistments->map(fn (TaskEnlistment $enlistment) => $this->shown($enlistment->member) + [
             'note' => $enlistment->note,
             'mine' => $mine($enlistment),
-            'leave' => $mine($enlistment) && TaskEnlistments::canLeave($enlistment) ? $enlistment->id : null,
+            'regular' => $on !== null && $enlistment->isWholeTask(),
+            'leave' => $mine($enlistment) && ($on === null || ! $enlistment->isWholeTask()) && TaskEnlistments::canLeave($enlistment) ? $enlistment->id : null,
+            'skip' => $on !== null && $mine($enlistment) && $enlistment->isWholeTask() && TaskEnlistments::canChangeDate($enlistment->task, $on) ? $enlistment->id : null,
         ])->values()->all();
 
         $occurrences = $board->occurrences
             ->filter(fn (TaskOccurrence $occurrence) => $occurrence->cancelled_at === null || $occurrence->enlistments->contains($mine))
-            ->map(function (TaskOccurrence $occurrence) use ($board, $people) {
+            ->map(function (TaskOccurrence $occurrence) use ($board, $people, $mine) {
                 $state = $board->state($occurrence);
 
                 $when = $occurrence->startsAt()->translatedFormat($occurrence->time === null ? 'l j F' : 'l j F, H:i');
@@ -141,7 +174,10 @@ class PublicTasksController
                     'count' => $board->count($occurrence),
                     'max' => $occurrence->task->max_people,
                     'min' => $occurrence->task->min_people,
-                    'people' => $people($occurrence->enlistments),
+                    'people' => $people($board->enlistmentsFor($occurrence), $occurrence),
+                    'skipped' => $board->skippedFor($occurrence)->filter($mine)->map(fn (TaskEnlistment $enlistment) => $this->shown($enlistment->member) + [
+                        'restore' => ! $occurrence->task->staff_only && ! $occurrence->hasPassed() && $occurrence->cancelled_at === null ? $enlistment->id : null,
+                    ])->values()->all(),
                     'can_enlist' => $state->acceptsEnlisting() && ! $occurrence->task->staff_only,
                     'staff_only' => $occurrence->task->staff_only,
                 ];
@@ -163,6 +199,7 @@ class PublicTasksController
                 'count' => $board->activeEnlistments($task)->count(),
                 'max' => $task->max_people,
                 'people' => $people($board->activeEnlistments($task)),
+                'skipped' => [],
                 'can_enlist' => $board->wholeTaskAcceptsEnlisting($task) && ! $task->staff_only,
                 'staff_only' => $task->staff_only,
             ])->all(),

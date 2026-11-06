@@ -40,6 +40,7 @@
                                 'state' => null,
                                 'count' => $enlistments->count(),
                                 'enlistments' => $enlistments,
+                                'skipped' => collect(),
                                 'canEnlist' => $board->wholeTaskAcceptsEnlisting($task),
                                 'events' => $task->events,
                             ])
@@ -60,7 +61,8 @@
                                 'when' => $occurrence->startsAt()->translatedFormat($occurrence->time === null ? 'D j M' : 'D j M, H:i'),
                                 'state' => $state,
                                 'count' => $board->count($occurrence),
-                                'enlistments' => $occurrence->enlistments,
+                                'enlistments' => $board->enlistmentsFor($occurrence),
+                                'skipped' => $board->skippedFor($occurrence),
                                 'canEnlist' => $state->acceptsEnlisting(),
                                 'events' => $occurrence->events,
                             ])

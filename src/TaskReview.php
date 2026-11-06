@@ -61,6 +61,14 @@ class TaskReview
         )->values();
     }
 
+    /**
+     * @return Collection<int, TaskEnlistment>
+     */
+    public function skipped(TaskOccurrence $occurrence): Collection
+    {
+        return $occurrence->task->wholeTaskEnlistments->filter(fn (TaskEnlistment $enlistment) => $enlistment->isSkippedOn($occurrence))->values();
+    }
+
     public function pending(TaskOccurrence $occurrence): int
     {
         return $this->enlistments($occurrence)->filter(fn (TaskEnlistment $enlistment) => $enlistment->outcomeFor($occurrence) === null)->count();

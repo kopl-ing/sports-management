@@ -50,6 +50,7 @@ Route::middleware('can:kopling-sports-management::manage-teams')->group(function
     Route::post('/{team}/tasks/link', [TasksController::class, 'regenerateLink'])->name('tasks.link');
     Route::post('/{team}/members/{teamMember}/tasks-link', [TasksController::class, 'regenerateMemberLink'])->name('tasks.member-link');
     Route::post('/{team}/tasks/confirm', [TasksController::class, 'confirm'])->name('tasks.confirm');
+    Route::post('/{team}/tasks/enlistments/{enlistment}/date', [TasksController::class, 'changeDate'])->name('tasks.date');
     Route::post('/{team}/tasks/enlistments/{enlistment}/outcome', [TasksController::class, 'outcome'])->name('tasks.outcome');
     Route::post('/{team}/tasks/enlistments/{enlistment}/delete', [TasksController::class, 'leave'])->name('tasks.leave');
     Route::post('/{team}/tasks/{task}/enlist', [TasksController::class, 'enlist'])->name('tasks.enlist');

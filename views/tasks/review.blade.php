@@ -22,6 +22,7 @@
                 @php
                     $pending = $review->pending($occurrence);
                     $enlistments = $review->enlistments($occurrence);
+                    $skipped = $review->skipped($occurrence);
                 @endphp
                 <li class="list-row">
                     <div class="list-col-grow min-w-0 flex flex-col gap-2">
@@ -55,6 +56,13 @@
                             </div>
                         </div>
 
+                        @foreach ($skipped as $enlistment)
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="line-through opacity-60">{{ $enlistment->member->person->name }}</span>
+                                <span class="badge badge-xs badge-ghost">{{ __('kopling-sports-management::messages.tasks.off_this_date') }}</span>
+                                @include('kopling-sports-management::tasks.date-change', ['action' => 'restore'])
+                            </div>
+                        @endforeach
                         @if ($enlistments->isEmpty())
                             <p class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.nobody') }}</p>
                         @else
@@ -83,19 +91,21 @@
                                                 @endforeach
                                             </div>
                                         @endif
-                                        @unless ($enlistment->isWholeTask())
+                                        @if ($enlistment->isWholeTask())
+                                            @include('kopling-sports-management::tasks.date-change', ['action' => 'skip'])
+                                        @else
                                             <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.leave', [$team, $enlistment]) }}">
                                                 @csrf
                                                 <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.remove') }}</button>
                                             </form>
-                                        @endunless
+                                        @endif
                                         </div>
                                     </li>
                                 @endforeach
                             </ul>
                         @endif
 
-                        @if ($occurrence->task->enrolment === \Kopling\SportsManagement\TaskEnrolment::PerOccurrence && $players !== []
+                        @if ($occurrence->task->schedule !== \Kopling\SportsManagement\TaskSchedule::Season && $players !== []
                             && ($occurrence->task->max_people === null || $enlistments->count() < $occurrence->task->max_people))
                             <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.enlist', [$team, $occurrence->task]) }}" class="join w-full" autocomplete="off">
                                 @csrf

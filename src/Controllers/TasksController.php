@@ -128,11 +128,19 @@ class TasksController
             'team_member_id' => ['required', 'uuid'],
             'occurrence_id' => ['nullable', 'uuid'],
             'note' => ['nullable', 'string', 'max:100'],
+            'starts_on' => ['nullable', 'date_format:Y-m-d'],
         ], [], FieldNames::all());
         $member = $team->members()->onTeamAt(now())->where('guest', false)->whereKey($data['team_member_id'])->first() ?? abort(404);
         $occurrence = isset($data['occurrence_id']) ? ($task->occurrences()->whereKey($data['occurrence_id'])->first() ?? abort(404)) : null;
 
-        TaskEnlistments::enlist($task->setRelation('team', $team), $occurrence, $member, $data['note'] ?? null, $request->user());
+        TaskEnlistments::enlist(
+            $task->setRelation('team', $team),
+            $occurrence,
+            $member,
+            $data['note'] ?? null,
+            $request->user(),
+            isset($data['starts_on']) ? CarbonImmutable::parse($data['starts_on']) : null,
+        );
 
         return back();
     }
@@ -142,6 +150,22 @@ class TasksController
         $this->authorizeTask($request, $team, $enlistment->task);
 
         TaskEnlistments::leave($enlistment, $request->user());
+
+        return back();
+    }
+
+    public function changeDate(Request $request, Team $team, TaskEnlistment $enlistment): RedirectResponse
+    {
+        $this->authorizeTask($request, $team, $enlistment->task);
+        abort_unless($enlistment->isWholeTask(), 404);
+
+        $data = $request->validate(['occurrence_id' => ['required', 'uuid'], 'action' => ['required', 'in:skip,restore']]);
+        $occurrence = $enlistment->task->occurrences()->whereKey($data['occurrence_id'])->first() ?? abort(404);
+        $enlistment->task->setRelation('team', $team);
+
+        $data['action'] === 'skip'
+            ? TaskEnlistments::skip($enlistment, $occurrence, $request->user())
+            : TaskEnlistments::restore($enlistment, $occurrence, $request->user());
 
         return back();
     }

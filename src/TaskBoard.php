@@ -31,12 +31,15 @@ class TaskBoard
             ->withExists(['occurrences as has_upcoming' => fn ($query) => $query->whereNull('cancelled_at')->whereDate('date', '>=', today()->toDateString())])
             ->orderBy('title')
             ->get()
-            ->each(fn (Task $task) => $task->setRelation('team', $team));
+            ->each(function (Task $task) use ($team) {
+                $task->setRelation('team', $team);
+                $task->wholeTaskEnlistments->each->setRelation('task', $task);
+            });
 
         $from = CarbonImmutable::today();
         $until = $from->addWeeks($weeks);
         $query = TaskOccurrence::query()
-            ->whereIn('task_id', $this->tasks->where('enrolment', TaskEnrolment::PerOccurrence)->modelKeys())
+            ->whereIn('task_id', $this->tasks->filter(fn (Task $task) => $task->schedule !== TaskSchedule::Season)->modelKeys())
             ->whereDate('date', '>=', $from->toDateString())
             ->where(fn ($query) => $query->whereNull('cancelled_at')->orWhereHas('enlistments'));
 
@@ -130,6 +133,28 @@ class TaskBoard
     public function activeEnlistments(Task $task): Collection
     {
         return $task->wholeTaskEnlistments->filter->isActive()->each->setRelation('task', $task)->values();
+    }
+
+    /**
+     * Everyone on a date: its own sign-ups, then the season-long ones covering it.
+     *
+     * @return Collection<int, TaskEnlistment>
+     */
+    public function enlistmentsFor(TaskOccurrence $occurrence): Collection
+    {
+        return $occurrence->enlistments->concat(
+            $occurrence->task->wholeTaskEnlistments->filter(fn (TaskEnlistment $enlistment) => $enlistment->covers($occurrence)),
+        )->values();
+    }
+
+    /**
+     * Season-long sign-ups whose person is off this date.
+     *
+     * @return Collection<int, TaskEnlistment>
+     */
+    public function skippedFor(TaskOccurrence $occurrence): Collection
+    {
+        return $occurrence->task->wholeTaskEnlistments->filter(fn (TaskEnlistment $enlistment) => $enlistment->isSkippedOn($occurrence))->values();
     }
 
     public function count(TaskOccurrence $occurrence): int

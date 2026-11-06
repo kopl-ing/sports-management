@@ -103,9 +103,15 @@
                                             </form>
                                         </div>
                                     @endforeach
-                                    @if (($task->max_people === null || $holders->count() < $task->max_people) && $task->upcomingOccurrences->isNotEmpty() && $players !== [])
+                                    @if (($task->max_people === null || $holders->count() < $task->max_people) && $task->first_date !== null && $players !== [])
+                                        @php
+                                            $firstDate = \Carbon\CarbonImmutable::parse($task->first_date);
+                                            $from = $task->upcomingOccurrences->isEmpty() ? $firstDate : \Carbon\CarbonImmutable::today();
+                                        @endphp
                                         <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.enlist', [$team, $task]) }}" class="join w-full" autocomplete="off">
                                             @csrf
+                                            <input type="date" name="starts_on" value="{{ $from->toDateString() }}" class="input input-sm join-item w-36"
+                                                   title="{{ __('kopling-sports-management::messages.tasks.starts_on') }}" aria-label="{{ __('kopling-sports-management::messages.tasks.starts_on') }}">
                                             <select name="team_member_id" class="select select-sm join-item w-auto" required aria-label="{{ __('kopling-sports-management::messages.tasks.assign_player') }}">
                                                 @foreach ($players as $id => $name)
                                                     <option value="{{ $id }}">{{ $name }}</option>

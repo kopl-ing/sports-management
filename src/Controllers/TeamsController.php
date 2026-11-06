@@ -75,7 +75,7 @@ class TeamsController
             'isOwner' => $team->isOwnedBy($request->user()),
             'sportLocked' => $team->matches()->exists(),
             'tasks' => $tasks = $isCoach && $team->tasks_enabled
-                ? $team->tasks()->with(['dates', 'upcomingOccurrences', 'wholeTaskEnlistments.member.person'])->orderBy('title')->get()
+                ? $team->tasks()->with(['dates', 'upcomingOccurrences', 'wholeTaskEnlistments.member.person'])->withMin(['occurrences as first_date' => fn ($query) => $query->whereNull('cancelled_at')], 'date')->orderBy('title')->get()
                 : collect(),
             'players' => TeamMember::sorted($current->where('guest', false))->mapWithKeys(fn (TeamMember $member) => [$member->id => $member->person->name])->all(),
             'shortHanded' => $isCoach ? TaskBoard::shortHanded([$team]) : collect(),

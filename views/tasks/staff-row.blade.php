@@ -23,21 +23,35 @@
             </span>
         </div>
 
-        @if ($enlistments->isNotEmpty())
+        @if ($enlistments->isNotEmpty() || $skipped->isNotEmpty())
             <ul class="flex flex-col gap-1">
                 @foreach ($enlistments as $enlistment)
                     <li class="flex items-center gap-2 text-sm">
                         <span>{{ $enlistment->member->person->name }}</span>
+                        @if ($occurrence && $enlistment->isWholeTask())
+                            <span class="badge badge-xs badge-ghost">{{ __('kopling-sports-management::messages.tasks.regular') }}</span>
+                        @endif
                         @if ($enlistment->created_by)
                             <span class="badge badge-xs badge-outline" title="{{ $enlistment->creator?->name }}">{{ __('kopling-sports-management::messages.tasks.assigned') }}</span>
                         @endif
                         @if ($enlistment->note)
                             <span class="opacity-60 truncate">&middot; {{ $enlistment->note }}</span>
                         @endif
-                        <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.leave', [$team, $enlistment]) }}" class="ms-auto">
-                            @csrf
-                            <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.remove') }}</button>
-                        </form>
+                        @if ($occurrence && $enlistment->isWholeTask())
+                            @include('kopling-sports-management::tasks.date-change', ['action' => 'skip'])
+                        @else
+                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.leave', [$team, $enlistment]) }}" class="ms-auto">
+                                @csrf
+                                <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.remove') }}</button>
+                            </form>
+                        @endif
+                    </li>
+                @endforeach
+                @foreach ($skipped as $enlistment)
+                    <li class="flex items-center gap-2 text-sm">
+                        <span class="line-through opacity-60">{{ $enlistment->member->person->name }}</span>
+                        <span class="badge badge-xs badge-ghost">{{ __('kopling-sports-management::messages.tasks.off_this_date') }}</span>
+                        @include('kopling-sports-management::tasks.date-change', ['action' => 'restore'])
                     </li>
                 @endforeach
             </ul>

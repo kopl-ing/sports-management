@@ -11,16 +11,40 @@
         @if ($when || $row['match'])
             <div class="text-sm opacity-60">{{ collect([$when, $row['match']])->filter()->join(' · ') }}</div>
         @endif
-        @if ($row['people'] !== [])
+        @if ($row['people'] !== [] || $row['skipped'] !== [])
             <ul class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                 @foreach ($row['people'] as $person)
                     <li class="flex items-center gap-1 text-sm">
                         <x-k::person.avatar :name="$person['name']" :color="$person['color']" :mask="null" size="w-5" />
                         <span class="{{ $person['mine'] ? 'font-semibold' : 'opacity-80' }}">{{ $person['name'] }}</span>
+                        @if ($person['regular'])
+                            <span class="badge badge-xs badge-ghost">{{ __('kopling-sports-management::messages.tasks.regular') }}</span>
+                        @endif
                         @if ($person['leave'])
                             <form method="POST" action="{{ $leaveUrl($person['leave']) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.tasks.link.leave') }}</button>
+                            </form>
+                        @elseif ($person['skip'])
+                            <form method="POST" action="{{ $dateUrl($person['skip']) }}">
+                                @csrf
+                                <input type="hidden" name="occurrence_id" value="{{ $occurrenceId }}">
+                                <input type="hidden" name="action" value="skip">
+                                <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.tasks.link.skip') }}</button>
+                            </form>
+                        @endif
+                    </li>
+                @endforeach
+                @foreach ($row['skipped'] as $person)
+                    <li class="flex items-center gap-1 text-sm">
+                        <x-k::person.avatar :name="$person['name']" :color="$person['color']" :mask="null" size="w-5" />
+                        <span class="line-through opacity-60">{{ $person['name'] }}</span>
+                        @if ($person['restore'])
+                            <form method="POST" action="{{ $dateUrl($person['restore']) }}">
+                                @csrf
+                                <input type="hidden" name="occurrence_id" value="{{ $occurrenceId }}">
+                                <input type="hidden" name="action" value="restore">
+                                <button type="submit" class="btn btn-xs btn-ghost">{{ __('kopling-sports-management::messages.tasks.link.restore') }}</button>
                             </form>
                         @endif
                     </li>

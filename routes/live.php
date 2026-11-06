@@ -16,7 +16,9 @@ Route::where(['token' => '[A-Za-z0-9]{40}'])->group(function () {
     Route::middleware('throttle:60,10,sm-task-links')->group(function () {
         Route::post('/team/{token}/tasks/{member}', [PublicTasksController::class, 'teamEnlist'])->whereUuid('member')->name('tasks.team.enlist');
         Route::post('/team/{token}/tasks/{member}/leave/{enlistment}', [PublicTasksController::class, 'teamLeave'])->whereUuid('member')->name('tasks.team.leave');
+        Route::post('/team/{token}/tasks/{member}/dates/{enlistment}', [PublicTasksController::class, 'teamDate'])->whereUuid('member')->name('tasks.team.date');
         Route::post('/player/{token}/tasks', [PublicTasksController::class, 'playerEnlist'])->name('tasks.player.enlist');
         Route::post('/player/{token}/tasks/leave/{enlistment}', [PublicTasksController::class, 'playerLeave'])->name('tasks.player.leave');
+        Route::post('/player/{token}/tasks/dates/{enlistment}', [PublicTasksController::class, 'playerDate'])->name('tasks.player.date');
     });
 });
