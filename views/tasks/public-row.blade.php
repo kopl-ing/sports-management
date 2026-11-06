@@ -52,7 +52,7 @@
             </ul>
         @endif
     </div>
-    <span class="badge badge-sm shrink-0 whitespace-nowrap {{ $state?->badgeClass() ?? 'badge-ghost' }}">
+    <span class="badge badge-sm shrink-0 whitespace-nowrap {{ $row['badge'] }}">
         @if ($state && ! $state->acceptsEnlisting() && $state !== \Kopling\SportsManagement\TaskOccurrenceState::Full)
             {{ $state->label() }}
         @else

@@ -43,16 +43,6 @@
                 </div>
             @endif
 
-            @if ($wholeTasks !== [])
-                <section class="flex flex-col gap-2">
-                    <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.link.whole_tasks') }}</h2>
-                    <ul class="list card card-border bg-base-100">
-                        @foreach ($wholeTasks as $row)
-                            @include('kopling-sports-management::tasks.public-row', ['when' => $row['schedule'], 'occurrenceId' => null, 'state' => null])
-                        @endforeach
-                    </ul>
-                </section>
-            @endif
 
             @forelse ($days as $date => $rows)
                 <section class="flex flex-col gap-2">
@@ -64,13 +54,45 @@
                     </ul>
                 </section>
             @empty
-                @if ($wholeTasks === [])
-                    <p class="opacity-60 text-center">{{ __('kopling-sports-management::messages.tasks.link.nothing') }}</p>
-                @endif
+                <p class="opacity-60 text-center">{{ __('kopling-sports-management::messages.tasks.link.nothing') }}</p>
             @endforelse
 
             @if ($laterUrl)
                 <a href="{{ $laterUrl }}" class="btn btn-ghost self-center">{{ __('kopling-sports-management::messages.tasks.link.later') }}</a>
+            @endif
+
+            @if ($wholeTasks !== [] || $staffOnly !== [])
+                @php $openRoles = collect($wholeTasks)->where('can_enlist', true)->count(); @endphp
+                <details class="collapse collapse-arrow card-border bg-base-100">
+                    <summary class="collapse-title flex items-center gap-2">
+                        <span class="font-semibold">{{ __('kopling-sports-management::messages.tasks.link.other_tasks') }}</span>
+                        @if ($openRoles > 0)
+                            <span class="badge badge-sm badge-warning">{{ trans_choice('kopling-sports-management::messages.tasks.link.open_roles', $openRoles) }}</span>
+                        @endif
+                    </summary>
+                    <div class="collapse-content flex flex-col gap-4">
+                        @if ($wholeTasks !== [])
+                            <section class="flex flex-col gap-2">
+                                <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.link.whole_tasks') }}</h2>
+                                <ul class="list">
+                                    @foreach ($wholeTasks as $row)
+                                        @include('kopling-sports-management::tasks.public-row', ['when' => $row['schedule'], 'occurrenceId' => null, 'state' => null])
+                                    @endforeach
+                                </ul>
+                            </section>
+                        @endif
+                        @if ($staffOnly !== [])
+                            <section class="flex flex-col gap-2">
+                                <h2 class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.staff_only_note') }}</h2>
+                                <ul class="list">
+                                    @foreach ($staffOnly as $row)
+                                        @include('kopling-sports-management::tasks.public-row', ['when' => $row['full_when'], 'occurrenceId' => $row['id'], 'state' => $row['state']])
+                                    @endforeach
+                                </ul>
+                            </section>
+                        @endif
+                    </div>
+                </details>
             @endif
 
             @if ($balance)

@@ -457,6 +457,8 @@ return [
             'pick' => 'Voor wie pak je iets op?',
             'not_you' => 'Iemand anders?',
             'whole_tasks' => 'Voor het hele seizoen',
+            'other_tasks' => 'Vaste rollen en indeling door de staf',
+            'open_roles' => ':count open|:count open',
             'nothing' => 'Er is nu niets op te pakken.',
             'later' => 'Latere data tonen',
             'enlist' => 'Oppakken',

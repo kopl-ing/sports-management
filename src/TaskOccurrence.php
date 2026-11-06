@@ -76,10 +76,7 @@ class TaskOccurrence extends Model
         return match (true) {
             $this->cancelled_at !== null => TaskOccurrenceState::Cancelled,
             $this->hasPassed() => TaskOccurrenceState::Done,
-            $task->max_people !== null && $enlisted >= $task->max_people => TaskOccurrenceState::Full,
-            $task->min_people !== null && $enlisted < $task->min_people => TaskOccurrenceState::NeedsPeople,
-            $task->min_people !== null => TaskOccurrenceState::Enough,
-            default => TaskOccurrenceState::Open,
+            default => TaskOccurrenceState::fromCount($task, $enlisted),
         };
     }
 }

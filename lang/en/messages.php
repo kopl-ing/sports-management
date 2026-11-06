@@ -464,6 +464,8 @@ return [
             'pick' => 'Who are you helping out for?',
             'not_you' => 'Not you?',
             'whole_tasks' => 'For the whole season',
+            'other_tasks' => 'Fixed roles and staff assignments',
+            'open_roles' => ':count open|:count open',
             'nothing' => 'Nothing to do right now.',
             'later' => 'Show later dates',
             'enlist' => 'I\'ll do it',

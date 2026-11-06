@@ -180,6 +180,8 @@ class PublicTasksController
                     ])->values()->all(),
                     'can_enlist' => $state->acceptsEnlisting() && ! $occurrence->task->staff_only,
                     'staff_only' => $occurrence->task->staff_only,
+                    'badge' => $occurrence->task->staff_only ? 'badge-ghost' : $state->badgeClass(),
+                    'full_when' => $when,
                 ];
             });
 
@@ -202,12 +204,14 @@ class PublicTasksController
                 'skipped' => [],
                 'can_enlist' => $board->wholeTaskAcceptsEnlisting($task) && ! $task->staff_only,
                 'staff_only' => $task->staff_only,
+                'badge' => $task->staff_only ? 'badge-ghost' : TaskOccurrenceState::fromCount($task, $board->activeEnlistments($task)->count())->badgeClass(),
             ])->all(),
             'needsPeople' => $occurrences
                 ->filter(fn (array $row) => $row['state'] === TaskOccurrenceState::NeedsPeople && ! $row['staff_only'] && $row['date']->lte(today()->addDays(TaskBoard::SOON_DAYS)))
                 ->values()
                 ->all(),
-            'days' => $occurrences->groupBy(fn (array $row) => $row['date']->toDateString())->all(),
+            'staffOnly' => $occurrences->filter(fn (array $row) => $row['staff_only'])->values()->all(),
+            'days' => $occurrences->reject(fn (array $row) => $row['staff_only'])->groupBy(fn (array $row) => $row['date']->toDateString())->all(),
             'balance' => $team->tasks_balance_public
                 ? TaskBalance::for($team)
                     ->reject(fn (array $row) => $row['left'])
