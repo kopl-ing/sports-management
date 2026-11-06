@@ -62,6 +62,9 @@
                 </div>
                 <p class="text-sm opacity-60">
                     {{ $match->scheduled_at->translatedFormat('l j F Y, H:i') }}
+                    @if ($teamPeriod = $team->periodOn($match->scheduled_at))
+                        &middot; {{ $teamPeriod->name }}
+                    @endif
                     @if ($preset)
                         &middot; {{ $preset->name }}
                         @if ($preset->rules_url)

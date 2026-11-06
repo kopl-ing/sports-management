@@ -1,7 +1,7 @@
 @extends('kopling-sports-management::layouts.sports-management')
 @section('title', __('kopling-sports-management::messages.tasks.balance').' · '.$team->name)
 @php
-    $most = max(1, $rows->max('points') ?? 0);
+    $most = max(1, $rows->max(fn ($row) => $row['points'] + $row['planned']) ?? 0);
     $duration = fn (int $minutes) => \Carbon\CarbonInterval::minutes($minutes)->cascade()->forHumans(['short' => true]);
     $money = fn (int $cents) => \Illuminate\Support\Number::currency($cents / 100, 'EUR', app()->getLocale());
 @endphp
@@ -31,9 +31,17 @@
                     <details class="collapse collapse-arrow join-item border border-base-300">
                         <summary class="collapse-title grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,12rem)_1fr_auto] items-center gap-x-4 gap-y-1">
                             <span class="truncate font-semibold">{{ $row['member']->person->name }}</span>
-                            <progress class="progress {{ $row['points'] === 0 ? 'progress-warning' : 'progress-primary' }} hidden sm:block" value="{{ $row['points'] }}" max="{{ $most }}"></progress>
+                            {{-- Stacked earned + planned: daisyUI's progress has one value only. --}}
+                            <div class="hidden sm:flex h-2 rounded-full bg-base-300 overflow-hidden" role="img"
+                                 aria-label="{{ trans_choice('kopling-sports-management::messages.tasks.points', $row['points']) }}, {{ trans_choice('kopling-sports-management::messages.tasks.planned_points', $row['planned']) }}">
+                                <div class="{{ $row['points'] === 0 ? 'bg-warning' : 'bg-primary' }}" style="width: {{ $row['points'] / $most * 100 }}%"></div>
+                                <div class="bg-primary/30" style="width: {{ $row['planned'] / $most * 100 }}%"></div>
+                            </div>
                             <span class="text-sm tabular-nums whitespace-nowrap text-end">
                                 <span class="font-semibold">{{ trans_choice('kopling-sports-management::messages.tasks.points', $row['points']) }}</span>
+                                @if ($row['planned'] > 0)
+                                    <span class="text-primary/70">+{{ trans_choice('kopling-sports-management::messages.tasks.planned_points', $row['planned']) }}</span>
+                                @endif
                                 <span class="opacity-60">&middot; {{ __('kopling-sports-management::messages.tasks.done_upcoming', ['done' => $row['done'], 'upcoming' => $row['upcoming']]) }}</span>
                                 @if ($row['no_shows'] > 0)
                                     <span class="badge badge-sm badge-error">{{ trans_choice('kopling-sports-management::messages.tasks.no_shows', $row['no_shows']) }}</span>

@@ -99,6 +99,13 @@ class Team extends Model
         return $this->hasMany(TeamPeriod::class)->orderBy('starts_on');
     }
 
+    public function periodOn(\DateTimeInterface $date): ?TeamPeriod
+    {
+        $day = CarbonImmutable::instance($date)->startOfDay();
+
+        return $this->periods->first(fn (TeamPeriod $period) => $period->contains($day));
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);

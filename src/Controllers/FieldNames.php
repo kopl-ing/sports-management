@@ -21,6 +21,7 @@ class FieldNames
         'enrolment' => 'tasks.enrolment_label',
         'undo_window' => 'tasks.undo_window_label',
         'confirm_each_occurrence' => 'tasks.confirm_each',
+        'staff_only' => 'tasks.staff_only',
         'lead_minutes' => 'tasks.lead_minutes',
         'dates' => 'tasks.dates_label',
         'dates.*.date' => 'tasks.date',

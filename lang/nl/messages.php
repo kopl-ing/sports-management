@@ -281,6 +281,9 @@ return [
         'within_help' => 'Sla data buiten :periods over, zoals de winterstop.',
         'within_none' => 'Voeg eerst periodes toe aan het team, bij Taken.',
         'none_yet' => 'Dit team heeft nog geen periodes.',
+        'backfill' => 'Terugwerkend toekennen aan vaste rollen',
+        'backfill_help' => 'Voor een periode die (deels) voorbij is: de huidige aanmeldingen voor alle data, zoals trainers en vaste rollen, tellen ook voor de data erin. Losse data zijn achteraf niet in te vullen.',
+        'backfilled' => '{0} Niets terug te werken.|{1} 1 aanmelding telt nu vanaf de start van de periode.|[2,*] :count aanmeldingen tellen nu vanaf de start van de periode.',
     ],
 
     'tasks' => [
@@ -298,6 +301,7 @@ return [
             'away_matches' => 'Elke uitwedstrijd',
             'dates' => 'Op vaste data',
             'recurring' => 'Terugkerend',
+            'season' => 'Hele seizoen (vaste rol)',
         ],
         'lead_minutes' => 'Minuten voor de aftrap',
         'lead_minutes_help' => 'Bijvoorbeeld 45 om 45 minuten voor de aftrap te vertrekken. Leeg: bij de aftrap.',
@@ -313,6 +317,7 @@ return [
             'yearly' => 'Jaarlijks',
         ],
         'interval_label' => 'Interval',
+        'season_help' => 'Eén persoon (of meer, tot het maximum) heeft deze rol de hele periode. Levert het gewicht aan punten op per maand dat iemand de rol heeft, tot die stopt of van het team af gaat.',
         'interval' => [
             'weekly' => 'Om de hoeveel weken',
             'monthly' => 'Om de hoeveel maanden',
@@ -345,10 +350,11 @@ return [
         'window_too_long' => 'Een terugkerende taak loopt hooguit twee jaar.',
         'dates_required' => 'Voeg minstens één datum toe.',
         'balance' => 'Verdeling',
-        'balance_help' => 'Punten per speler voor wat het gezin tot nu toe deed: elke datum telt het gewicht van de taak zodra die geweest is. Laagste bovenaan.',
+        'balance_help' => 'Punten per speler voor wat het gezin tot nu toe deed: elke datum telt het gewicht van de taak zodra die geweest is. Lichter in de balk: al opgepakt, nog te doen. Laagste bovenaan.',
         'balance_public' => 'Verdeling tonen aan ouders',
         'balance_public_help' => 'Iedereen met een takenlink ziet de punten per speler. Staf ziet ze altijd.',
         'points' => ':count punt|:count punten',
+        'planned_points' => ':count gepland|:count gepland',
         'done_upcoming' => ':done gedaan, :upcoming komend',
         'upcoming_item' => 'komend',
         'effort_time' => ':duration besteed',
@@ -371,6 +377,10 @@ return [
         'nothing_to_confirm' => 'Niets meer te bevestigen.',
         'nothing_past' => 'Nog geen afgelopen data.',
         'earlier' => 'Eerdere data tonen',
+        'staff_only' => 'Alleen staf deelt in',
+        'staff_only_help' => 'Ouders zien de taak en wie het doet, maar kunnen hem via de link niet oppakken of toch niet zeggen.',
+        'staff_only_note' => 'Staf deelt in',
+        'staff_only_closed' => 'Hiervoor deelt de staf mensen in.',
         'former_players' => 'Oud-spelers',
         'soon' => [
             'heading' => 'Deze week nog mensen nodig',
@@ -471,6 +481,7 @@ return [
             'monthly_day' => '{1} Maandelijks op dag :day|[2,*] Elke :count maanden op dag :day',
             'monthly_nth' => '{1} Maandelijks op de :nth :weekday|[2,*] Elke :count maanden op de :nth :weekday',
             'yearly' => 'Jaarlijks op :date',
+            'season' => 'Vaste rol, :from – :until',
             'within_periods' => ':schedule, binnen periodes',
             'nth' => [
                 '1' => 'eerste',

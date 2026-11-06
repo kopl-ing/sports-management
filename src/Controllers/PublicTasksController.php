@@ -140,7 +140,8 @@ class PublicTasksController
                     'max' => $occurrence->task->max_people,
                     'min' => $occurrence->task->min_people,
                     'people' => $people($occurrence->enlistments),
-                    'can_enlist' => $state->acceptsEnlisting(),
+                    'can_enlist' => $state->acceptsEnlisting() && ! $occurrence->task->staff_only,
+                    'staff_only' => $occurrence->task->staff_only,
                 ];
             });
 
@@ -158,10 +159,11 @@ class PublicTasksController
                 'count' => $board->activeEnlistments($task)->count(),
                 'max' => $task->max_people,
                 'people' => $people($board->activeEnlistments($task)),
-                'can_enlist' => $board->wholeTaskAcceptsEnlisting($task),
+                'can_enlist' => $board->wholeTaskAcceptsEnlisting($task) && ! $task->staff_only,
+                'staff_only' => $task->staff_only,
             ])->all(),
             'needsPeople' => $occurrences
-                ->filter(fn (array $row) => $row['state'] === TaskOccurrenceState::NeedsPeople && $row['date']->lte(today()->addDays(TaskBoard::SOON_DAYS)))
+                ->filter(fn (array $row) => $row['state'] === TaskOccurrenceState::NeedsPeople && ! $row['staff_only'] && $row['date']->lte(today()->addDays(TaskBoard::SOON_DAYS)))
                 ->values()
                 ->all(),
             'days' => $occurrences->groupBy(fn (array $row) => $row['date']->toDateString())->all(),

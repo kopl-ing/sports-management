@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Kopling\SportsManagement\TaskEnlistments;
 use Kopling\SportsManagement\TaskOccurrences;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamPeriod;
@@ -32,6 +33,17 @@ class TeamPeriodsController
         $this->save($teamPeriod, $team, $request);
 
         return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
+    }
+
+    public function backfill(Request $request, Team $team, TeamPeriod $teamPeriod): RedirectResponse
+    {
+        $this->authorizeCoach($request, $team);
+        abort_unless($teamPeriod->team_id === $team->id, 404);
+
+        $count = TaskEnlistments::backfill($teamPeriod);
+
+        return redirect()->route('kopling-sports-management::sports-management/teams.show', $team)
+            ->with('periods_status', trans_choice('kopling-sports-management::messages.periods.backfilled', $count));
     }
 
     public function destroy(Request $request, Team $team, TeamPeriod $teamPeriod): RedirectResponse
@@ -74,9 +86,12 @@ class TeamPeriodsController
             throw ValidationException::withMessages(['starts_on' => __('kopling-sports-management::messages.periods.overlaps', ['name' => $overlap->name])]);
         }
 
-        DB::transaction(function () use ($period, $team, $data) {
+        DB::transaction(function () use ($period, $team, $data, $request) {
             $period->fill($data)->save();
             TaskOccurrences::syncPeriodTasks($team);
+            if ($request->boolean('backfill')) {
+                TaskEnlistments::backfill($period);
+            }
         });
     }
 }

@@ -40,6 +40,7 @@ Route::middleware('can:kopling-sports-management::manage-teams')->group(function
 
     Route::post('/{team}/periods', [TeamPeriodsController::class, 'store'])->name('periods.store');
     Route::post('/{team}/periods/{teamPeriod}', [TeamPeriodsController::class, 'update'])->name('periods.update');
+    Route::post('/{team}/periods/{teamPeriod}/backfill', [TeamPeriodsController::class, 'backfill'])->name('periods.backfill');
     Route::post('/{team}/periods/{teamPeriod}/delete', [TeamPeriodsController::class, 'destroy'])->name('periods.destroy');
 
     Route::get('/{team}/tasks', [TasksController::class, 'index'])->name('tasks.index');

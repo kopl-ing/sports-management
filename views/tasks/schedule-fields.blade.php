@@ -37,6 +37,13 @@
                 {{ __('kopling-sports-management::messages.tasks.add_date') }}
             </button>
         </fieldset>
+    @elseif ($schedule === TaskSchedule::Season)
+        <p class="text-sm opacity-60">{{ __('kopling-sports-management::messages.tasks.season_help') }}</p>
+        <div class="grid grid-cols-2 gap-4">
+            <x-k::form.input :data="['name' => 'starts_on', 'label' => __('kopling-sports-management::messages.tasks.starts_on'), 'type' => 'date', 'value' => $v('starts_on', $seasonStart->toDateString()), 'required' => true]" />
+            <x-k::form.input :data="['name' => 'ends_on', 'label' => __('kopling-sports-management::messages.tasks.ends_on'), 'type' => 'date', 'value' => $v('ends_on', $seasonEnd->toDateString()), 'required' => true]" />
+        </div>
+        <x-k::form.toggle :data="['name' => 'within_periods', 'label' => __('kopling-sports-management::messages.periods.within'), 'description' => $team->periods->isEmpty() ? __('kopling-sports-management::messages.periods.within_none') : __('kopling-sports-management::messages.periods.within_help', ['periods' => $team->periods->pluck('name')->join(', ')]), 'value' => $v('within_periods') === '1']" />
     @else
         <x-k::form.select :data="['name' => 'frequency', 'label' => __('kopling-sports-management::messages.tasks.frequency_label'), 'options' => TaskFrequency::options(), 'value' => $frequency->value]" />
         @if ($frequency !== TaskFrequency::Yearly)
@@ -68,7 +75,9 @@
         <x-k::form.toggle :data="['name' => 'within_periods', 'label' => __('kopling-sports-management::messages.periods.within'), 'description' => $team->periods->isEmpty() ? __('kopling-sports-management::messages.periods.within_none') : __('kopling-sports-management::messages.periods.within_help', ['periods' => $team->periods->pluck('name')->join(', ')]), 'value' => $v('within_periods') === '1']" />
     @endif
 
-    @if ($repeats)
+    @if ($schedule === TaskSchedule::Season)
+        <input type="hidden" name="enrolment" value="whole_task">
+    @elseif ($repeats)
         <x-k::form.select :data="['name' => 'enrolment', 'label' => __('kopling-sports-management::messages.tasks.enrolment_label'), 'options' => \Kopling\SportsManagement\TaskEnrolment::options(), 'description' => __('kopling-sports-management::messages.tasks.enrolment_help'), 'value' => $v('enrolment', 'per_occurrence')]" />
     @else
         <input type="hidden" name="enrolment" value="per_occurrence">

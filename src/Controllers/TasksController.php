@@ -241,6 +241,8 @@ class TasksController
         $byNth = $monthly && $request->input('monthly_by') === 'nth';
         $yearly = $recurring && $frequency === TaskFrequency::Yearly;
         $onDates = $schedule === TaskSchedule::Dates;
+        $season = $schedule === TaskSchedule::Season;
+        $windowed = $recurring || $season;
         $only = fn (bool $applies, array $rules) => $applies ? $rules : ['exclude'];
 
         $data = $request->validate([
@@ -250,6 +252,7 @@ class TasksController
             'enrolment' => ['required', Rule::enum(TaskEnrolment::class)],
             'undo_window' => ['required', Rule::enum(TaskUndoWindow::class)],
             'confirm_each_occurrence' => ['sometimes', 'boolean'],
+            'staff_only' => ['sometimes', 'boolean'],
             'lead_minutes' => $only($schedule?->isMatchBound() ?? false, ['nullable', 'integer', 'min:0', 'max:1440']),
             'dates' => $only($onDates, ['array', 'max:100']),
             'dates.*.date' => $only($onDates, ['nullable', 'date_format:Y-m-d']),
@@ -262,9 +265,9 @@ class TasksController
             'nth' => $only($byNth, ['required', 'integer', Rule::in([1, 2, 3, 4, TaskRecurrence::NTH_LAST])]),
             'month' => $only($yearly, ['required', 'integer', 'between:1,12']),
             'time' => $only($recurring, ['nullable', 'date_format:H:i']),
-            'starts_on' => $only($recurring, ['required', 'date_format:Y-m-d']),
-            'ends_on' => $only($recurring, ['required', 'date_format:Y-m-d', 'after_or_equal:starts_on']),
-            'within_periods' => $only($recurring, ['sometimes', 'boolean']),
+            'starts_on' => $only($windowed, ['required', 'date_format:Y-m-d']),
+            'ends_on' => $only($windowed, ['required', 'date_format:Y-m-d', 'after_or_equal:starts_on']),
+            'within_periods' => $only($windowed, ['sometimes', 'boolean']),
             'min_people' => ['nullable', 'integer', 'min:1', 'max:99'],
             'max_people' => ['nullable', 'integer', 'min:1', 'max:99'],
             'effort_minutes' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -280,7 +283,7 @@ class TasksController
             throw ValidationException::withMessages(['within_periods' => __('kopling-sports-management::messages.periods.none_yet')]);
         }
 
-        if ($recurring && CarbonImmutable::parse($data['ends_on'])->gt(CarbonImmutable::parse($data['starts_on'])->addYears(2))) {
+        if ($windowed && CarbonImmutable::parse($data['ends_on'])->gt(CarbonImmutable::parse($data['starts_on'])->addYears(2))) {
             throw ValidationException::withMessages(['ends_on' => __('kopling-sports-management::messages.tasks.window_too_long')]);
         }
 
@@ -296,7 +299,11 @@ class TasksController
             throw ValidationException::withMessages(['dates' => __('kopling-sports-management::messages.tasks.dates_required')]);
         }
 
-        $enrolment = $onDates && count($dates) === 1 ? TaskEnrolment::PerOccurrence : TaskEnrolment::from($data['enrolment']);
+        $enrolment = match (true) {
+            $season => TaskEnrolment::WholeTask,
+            $onDates && count($dates) === 1 => TaskEnrolment::PerOccurrence,
+            default => TaskEnrolment::from($data['enrolment']),
+        };
         $attributes = [
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
@@ -314,6 +321,7 @@ class TasksController
             'effort_cents' => isset($data['effort_amount']) ? (int) round($data['effort_amount'] * 100) : null,
             'weight' => $data['weight'],
             'undo_window' => $data['undo_window'],
+            'staff_only' => (bool) ($data['staff_only'] ?? false),
         ];
         $attributes['confirm_each_occurrence'] = $enrolment === TaskEnrolment::WholeTask && (bool) ($data['confirm_each_occurrence'] ?? false);
 

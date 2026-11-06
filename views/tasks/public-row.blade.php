@@ -35,7 +35,9 @@
             {{ $row['max'] === null ? $row['count'] : $row['count'].' / '.$row['max'] }}
         @endif
     </span>
-    @if ($row['can_enlist'])
+    @if ($row['staff_only'])
+        <span class="text-xs opacity-60 shrink-0 max-w-24 text-end">{{ __('kopling-sports-management::messages.tasks.staff_only_note') }}</span>
+    @elseif ($row['can_enlist'])
         <x-k::modal :label="$row['title']" :id="$modalId">
             <x-slot:trigger class="btn btn-sm btn-primary">{{ __('kopling-sports-management::messages.tasks.link.enlist') }}</x-slot:trigger>
             <form method="POST" action="{{ $enlistUrl }}" class="flex flex-col gap-4" autocomplete="off">

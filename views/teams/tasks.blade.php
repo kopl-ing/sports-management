@@ -74,7 +74,11 @@
                                 @endif
                             </div>
                             <div class="text-sm opacity-60">
-                                @if ($next)
+                                @if ($task->schedule === \Kopling\SportsManagement\TaskSchedule::Season)
+                                    @if (! $next)
+                                        {{ __('kopling-sports-management::messages.tasks.no_upcoming') }}
+                                    @endif
+                                @elseif ($next)
                                     {{ __('kopling-sports-management::messages.tasks.next', ['date' => $next->startsAt()->translatedFormat($next->time === null ? 'D j M' : 'D j M, H:i')]) }}
                                     &middot; {{ trans_choice('kopling-sports-management::messages.tasks.upcoming_count', $task->upcomingOccurrences->count()) }}
                                 @else
@@ -126,6 +130,9 @@
                         ])
                     </x-k::modal>
                 </div>
+                @if (session('periods_status'))
+                    <p class="text-success text-sm">{{ session('periods_status') }}</p>
+                @endif
                 @if ($team->periods->isNotEmpty())
                     <ul class="list">
                         @foreach ($team->periods as $period)
@@ -143,12 +150,18 @@
                                         'title' => $period->name,
                                         'period' => $period,
                                     ])
-                                    <form method="POST" action="{{ route('kopling-sports-management::sports-management/periods.destroy', [$team, $period]) }}"
-                                          hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.periods.confirm_delete') }}"
-                                          class="mt-6 pt-4 border-t border-base-300">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-sports-management::messages.delete') }}</button>
-                                    </form>
+                                    <div class="flex flex-col gap-3 mt-6 pt-4 border-t border-base-300">
+                                        <form method="POST" action="{{ route('kopling-sports-management::sports-management/periods.backfill', [$team, $period]) }}" class="flex flex-col gap-1">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm self-start">{{ __('kopling-sports-management::messages.periods.backfill') }}</button>
+                                            <p class="text-sm opacity-60">{{ __('kopling-sports-management::messages.periods.backfill_help') }}</p>
+                                        </form>
+                                        <form method="POST" action="{{ route('kopling-sports-management::sports-management/periods.destroy', [$team, $period]) }}"
+                                              hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.periods.confirm_delete') }}">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-sports-management::messages.delete') }}</button>
+                                        </form>
+                                    </div>
                                 </x-k::modal>
                             </li>
                         @endforeach

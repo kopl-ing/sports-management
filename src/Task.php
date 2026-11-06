@@ -40,6 +40,7 @@ class Task extends Model
         'weight',
         'enrolment',
         'undo_window',
+        'staff_only',
         'confirm_each_occurrence',
         'created_by',
     ];
@@ -51,6 +52,7 @@ class Task extends Model
             'enrolment' => TaskEnrolment::class,
             'undo_window' => TaskUndoWindow::class,
             'confirm_each_occurrence' => 'boolean',
+            'staff_only' => 'boolean',
             'recurrence' => 'array',
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
@@ -143,6 +145,12 @@ class Task extends Model
 
         if ($this->schedule === TaskSchedule::Dates) {
             return trans_choice($key.'dates', $this->dates->count());
+        }
+
+        if ($this->schedule === TaskSchedule::Season) {
+            $summary = __($key.'season', ['from' => $this->starts_on?->translatedFormat('j M Y'), 'until' => $this->ends_on?->translatedFormat('j M Y')]);
+
+            return $this->within_periods ? __($key.'within_periods', ['schedule' => $summary]) : $summary;
         }
 
         $rule = $this->recurrenceRule();

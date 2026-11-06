@@ -68,7 +68,7 @@ class TaskBoard
         }
 
         return TaskOccurrence::query()
-            ->whereHas('task', fn ($query) => $query->whereIn('team_id', $teams->keys())->whereNotNull('min_people'))
+            ->whereHas('task', fn ($query) => $query->whereIn('team_id', $teams->keys())->whereNotNull('min_people')->where('schedule', '!=', TaskSchedule::Season))
             ->whereNull('cancelled_at')
             ->whereDate('date', '>=', today()->toDateString())
             ->whereDate('date', '<=', today()->addDays($days)->toDateString())

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\SportsManagement;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class TaskOccurrences
@@ -50,8 +51,44 @@ class TaskOccurrences
 
     public static function syncPeriodTasks(Team $team): void
     {
-        $team->tasks()->where('schedule', TaskSchedule::Recurring)->where('within_periods', true)->get()
+        $team->tasks()->whereIn('schedule', [TaskSchedule::Recurring, TaskSchedule::Season])->where('within_periods', true)->get()
             ->each(fn (Task $task) => self::sync($task->setRelation('team', $team)));
+    }
+
+    /**
+     * A season role earns its weight per month held: one date at each month's end, the last one on the role's end date.
+     * Limited to periods, a month counts when any of its days falls in one, dated on its last day in a period.
+     *
+     * @param Collection<int, TeamPeriod>|null $periods
+     * @return array<int, CarbonImmutable>
+     */
+    private static function monthEnds(?CarbonImmutable $from, ?CarbonImmutable $until, ?Collection $periods = null): array
+    {
+        if ($from === null || $until === null) {
+            return [];
+        }
+
+        $dates = [];
+        for ($month = $from->startOfMonth(); $month->lte($until); $month = $month->addMonthNoOverflow()) {
+            $first = $month->max($from);
+            $last = $month->endOfMonth()->startOfDay()->min($until);
+
+            if ($periods === null) {
+                $dates[] = $last;
+
+                continue;
+            }
+
+            $inPeriod = $periods
+                ->filter(fn (TeamPeriod $period) => $period->starts_on->lte($last) && $period->ends_on->gte($first))
+                ->map(fn (TeamPeriod $period) => $period->ends_on->min($last))
+                ->max();
+            if ($inPeriod !== null) {
+                $dates[] = $inPeriod;
+            }
+        }
+
+        return $dates;
     }
 
     /**
@@ -86,6 +123,10 @@ class TaskOccurrences
             $task->schedule === TaskSchedule::Dates => $task->dates()->get()
                 ->map(fn (TaskDate $date) => ['match_id' => null, 'date' => $date->date->toDateString(), 'time' => $date->time])
                 ->all(),
+            $task->schedule === TaskSchedule::Season => array_map(
+                fn (CarbonImmutable $date) => ['match_id' => null, 'date' => $date->toDateString(), 'time' => null],
+                self::monthEnds($task->starts_on, $task->ends_on, $task->within_periods ? $task->team->periods()->get() : null),
+            ),
             default => array_map(
                 fn (CarbonImmutable $date) => ['match_id' => null, 'date' => $date->toDateString(), 'time' => $task->time],
                 self::withinPeriods($task, $task->recurrenceRule()?->dates($task->starts_on, $task->ends_on) ?? []),

@@ -22,6 +22,7 @@ class TaskEnlistment extends Model
         'occurrence_id',
         'team_member_id',
         'note',
+        'starts_on',
         'ended_on',
         'created_by',
     ];
@@ -29,6 +30,7 @@ class TaskEnlistment extends Model
     protected function casts(): array
     {
         return [
+            'starts_on' => 'immutable_date',
             'ended_on' => 'immutable_date',
         ];
     }
@@ -80,7 +82,7 @@ class TaskEnlistment extends Model
 
     public function startsOn(): CarbonImmutable
     {
-        return CarbonImmutable::parse($this->created_at)->startOfDay();
+        return $this->starts_on ?? CarbonImmutable::parse($this->created_at)->startOfDay();
     }
 
     public function covers(TaskOccurrence $occurrence): bool

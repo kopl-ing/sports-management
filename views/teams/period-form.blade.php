@@ -11,6 +11,9 @@
         <x-k::form.input :data="['name' => 'starts_on', 'label' => __('kopling-sports-management::messages.tasks.starts_on'), 'type' => 'date', 'value' => $filled ? old('starts_on') : ($period?->starts_on ?? $seasonStart)->toDateString(), 'required' => true]" />
         <x-k::form.input :data="['name' => 'ends_on', 'label' => __('kopling-sports-management::messages.tasks.ends_on'), 'type' => 'date', 'value' => $filled ? old('ends_on') : ($period?->ends_on ?? $seasonEnd)->toDateString(), 'required' => true]" />
     </div>
+    @if ($period === null)
+        <x-k::form.toggle :data="['name' => 'backfill', 'label' => __('kopling-sports-management::messages.periods.backfill'), 'description' => __('kopling-sports-management::messages.periods.backfill_help'), 'value' => $filled ? old('backfill') : false]" />
+    @endif
     @if ($filled && $errors->any())
         <p class="text-error text-sm">{{ $errors->first() }}</p>
     @endif

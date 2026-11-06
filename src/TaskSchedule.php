@@ -11,6 +11,7 @@ enum TaskSchedule: string
     case AwayMatches = 'away_matches';
     case Dates = 'dates';
     case Recurring = 'recurring';
+    case Season = 'season';
 
     public function label(): string
     {

@@ -14,7 +14,7 @@ class TaskBalance
 {
     /**
      * @return Collection<int, array{
-     *     member: TeamMember, left: bool, points: int, done: int, upcoming: int, no_shows: int, pending: int, minutes: int, cents: int,
+     *     member: TeamMember, left: bool, points: int, planned: int, done: int, upcoming: int, no_shows: int, pending: int, minutes: int, cents: int,
      *     items: list<array{title: string, date: ?CarbonImmutable, whole: bool, done: int, upcoming: int, no_shows: int, pending: int, points: int, note: ?string, ended_on: ?CarbonImmutable}>
      * }>
      */
@@ -22,7 +22,7 @@ class TaskBalance
     {
         $members = TeamMember::sorted($team->members()->where('guest', false)->with('person')->get());
         $rows = $members->mapWithKeys(fn (TeamMember $member) => [$member->id => [
-            'member' => $member, 'left' => $member->hasLeft(), 'points' => 0, 'done' => 0, 'upcoming' => 0, 'no_shows' => 0, 'pending' => 0, 'minutes' => 0, 'cents' => 0, 'items' => [],
+            'member' => $member, 'left' => $member->hasLeft(), 'points' => 0, 'planned' => 0, 'done' => 0, 'upcoming' => 0, 'no_shows' => 0, 'pending' => 0, 'minutes' => 0, 'cents' => 0, 'items' => [],
         ]])->all();
 
         $tasks = $team->tasks()
@@ -58,6 +58,7 @@ class TaskBalance
                 $row['points'] += $done * $task->weight;
                 $row['done'] += $done;
                 $row['upcoming'] += $future->count();
+                $row['planned'] += $future->count() * $task->weight;
                 $row['no_shows'] += $noShows;
                 $row['pending'] += $pending;
                 $row['minutes'] += $done * ($task->effort_minutes ?? 0);

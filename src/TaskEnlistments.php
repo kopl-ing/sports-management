@@ -21,6 +21,10 @@ class TaskEnlistments
             abort(404);
         }
 
+        if ($by === null && $task->staff_only) {
+            throw ValidationException::withMessages(['enlist' => __('kopling-sports-management::messages.tasks.staff_only_closed')]);
+        }
+
         return DB::transaction(function () use ($task, $occurrence, $member, $note, $by) {
             if ($occurrence !== null) {
                 $occurrence = TaskOccurrence::whereKey($occurrence->id)->lockForUpdate()->firstOrFail()->setRelation('task', $task);
@@ -73,6 +77,25 @@ class TaskEnlistments
     }
 
     /**
+     * Lets the team's current season-long sign-ups count from the period's start; returns how many moved.
+     */
+    public static function backfill(TeamPeriod $period): int
+    {
+        $start = $period->starts_on;
+
+        $enlistments = TaskEnlistment::whereNull('occurrence_id')
+            ->whereHas('task', fn ($query) => $query->where('team_id', $period->team_id))
+            ->whereHas('member', fn ($query) => $query->onTeamAt($start))
+            ->where(fn ($query) => $query->whereNull('ended_on')->orWhereDate('ended_on', '>=', $start->toDateString()))
+            ->get()
+            ->filter(fn (TaskEnlistment $enlistment) => $enlistment->startsOn()->gt($start));
+
+        $enlistments->each(fn (TaskEnlistment $enlistment) => $enlistment->update(['starts_on' => $start]));
+
+        return $enlistments->count();
+    }
+
+    /**
      * For a player leaving the team: sign-ups from `$on` go, season-long ones end the day before.
      */
     public static function endFor(TeamMember $member, CarbonImmutable $on, ?Person $by): void
@@ -107,6 +130,10 @@ class TaskEnlistments
     public static function canLeave(TaskEnlistment $enlistment): bool
     {
         $task = $enlistment->task;
+
+        if ($task->staff_only) {
+            return false;
+        }
 
         if ($enlistment->isWholeTask()) {
             if (! $enlistment->isActive()) {

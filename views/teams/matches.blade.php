@@ -32,7 +32,12 @@
                                class="list-row flex items-center justify-between gap-2 hover:bg-base-200">
                                 <span class="min-w-0">
                                     <span class="block font-semibold">{{ $match->opponent_name }}</span>
-                                    <span class="block text-sm opacity-60">{{ $match->scheduled_at->translatedFormat('D j M Y, H:i') }}</span>
+                                    <span class="block text-sm opacity-60">
+                                        {{ $match->scheduled_at->translatedFormat('D j M Y, H:i') }}
+                                        @if ($teamPeriod = $team->periodOn($match->scheduled_at))
+                                            &middot; {{ $teamPeriod->name }}
+                                        @endif
+                                    </span>
                                 </span>
                                 <span class="flex shrink-0 items-center gap-2 whitespace-nowrap">
                                     @if ($match->periods->isNotEmpty())

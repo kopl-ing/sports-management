@@ -288,6 +288,9 @@ return [
         'within_help' => 'Skip dates outside :periods, such as the winter break.',
         'within_none' => 'Add periods to the team first, under Tasks.',
         'none_yet' => 'This team has no periods yet.',
+        'backfill' => 'Count past dates for current roles',
+        'backfill_help' => 'For a period that has (partly) passed: the current season-long sign-ups, such as trainers and fixed roles, also count for its dates. Single dates can\'t be filled in afterwards.',
+        'backfilled' => '{0} No sign-ups needed backfilling.|{1} 1 sign-up now counts from the start of the period.|[2,*] :count sign-ups now count from the start of the period.',
     ],
 
     'tasks' => [
@@ -305,6 +308,7 @@ return [
             'away_matches' => 'Every away match',
             'dates' => 'On set dates',
             'recurring' => 'Repeating',
+            'season' => 'Whole season (fixed role)',
         ],
         'lead_minutes' => 'Minutes before kick-off',
         'lead_minutes_help' => 'For example 45 to leave 45 minutes before kick-off. Empty: at kick-off.',
@@ -320,6 +324,7 @@ return [
             'yearly' => 'Yearly',
         ],
         'interval_label' => 'Interval',
+        'season_help' => 'One person (or more, up to the maximum) holds this role for the whole stretch. It earns its weight in points per month held, until they stop or leave the team.',
         'interval' => [
             'weekly' => 'Every how many weeks',
             'monthly' => 'Every how many months',
@@ -352,10 +357,11 @@ return [
         'window_too_long' => 'A repeating task can run for at most two years.',
         'dates_required' => 'Add at least one date.',
         'balance' => 'Balance',
-        'balance_help' => 'Points per player for what their family has done so far: each date counts the task\'s weight once it has passed. Lowest first.',
+        'balance_help' => 'Points per player for what their family has done so far: each date counts the task\'s weight once it has passed. Lighter in the bar: taken on, still to come. Lowest first.',
         'balance_public' => 'Show the balance to parents',
         'balance_public_help' => 'Everyone with a task link sees each player\'s points. Staff always see them.',
         'points' => ':count point|:count points',
+        'planned_points' => ':count planned|:count planned',
         'done_upcoming' => ':done done, :upcoming to come',
         'upcoming_item' => 'to come',
         'effort_time' => ':duration spent',
@@ -378,6 +384,10 @@ return [
         'nothing_to_confirm' => 'Nothing left to confirm.',
         'nothing_past' => 'No past dates yet.',
         'earlier' => 'Show earlier dates',
+        'staff_only' => 'Staff assign only',
+        'staff_only_help' => 'Parents still see the task and who does it, but can\'t take it on or back out through the link.',
+        'staff_only_note' => 'Assigned by staff',
+        'staff_only_closed' => 'Staff assign people to this one.',
         'former_players' => 'Former players',
         'soon' => [
             'heading' => 'People needed this week',
@@ -478,6 +488,7 @@ return [
             'monthly_day' => '{1} Monthly on day :day|[2,*] Every :count months on day :day',
             'monthly_nth' => '{1} Monthly on the :nth :weekday|[2,*] Every :count months on the :nth :weekday',
             'yearly' => 'Yearly on :date',
+            'season' => 'Fixed role, :from – :until',
             'within_periods' => ':schedule, within periods',
             'nth' => [
                 '1' => 'first',

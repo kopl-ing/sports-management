@@ -36,6 +36,7 @@
         <x-k::form.input :data="['name' => 'effort_minutes', 'label' => __('kopling-sports-management::messages.tasks.effort_minutes'), 'type' => 'number', 'value' => $field('effort_minutes', $task?->effort_minutes)]" />
         <x-k::form.input :data="['name' => 'effort_amount', 'label' => __('kopling-sports-management::messages.tasks.effort_amount'), 'type' => 'number', 'value' => $field('effort_amount', $task?->effort_cents === null ? null : $task->effort_cents / 100)]" />
     </div>
+    <x-k::form.toggle :data="['name' => 'staff_only', 'label' => __('kopling-sports-management::messages.tasks.staff_only'), 'description' => __('kopling-sports-management::messages.tasks.staff_only_help'), 'value' => $field('staff_only', $task?->staff_only)]" />
     <x-k::form.select :data="['name' => 'undo_window', 'label' => __('kopling-sports-management::messages.tasks.undo_window_label'), 'options' => \Kopling\SportsManagement\TaskUndoWindow::options(), 'description' => __('kopling-sports-management::messages.tasks.undo_window_help'), 'value' => (string) $field('undo_window', $task?->undo_window->value ?? 'any_time'), 'required' => true]" />
     @if ($team->tasks_approve_completion)
         <x-k::form.toggle :data="['name' => 'confirm_each_occurrence', 'label' => __('kopling-sports-management::messages.tasks.confirm_each'), 'description' => __('kopling-sports-management::messages.tasks.confirm_each_help'), 'value' => $field('confirm_each_occurrence', $task?->confirm_each_occurrence)]" />
