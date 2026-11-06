@@ -1,4 +1,5 @@
 @extends('kopling-sports-management::layouts.sports-management')
+@section('title', ($match->home_away === \Kopling\SportsManagement\HomeAway::Home ? $team->name.' – '.$match->opponent_name : $match->opponent_name.' – '.$team->name))
 @php
     $reopening = old('_form');
     $canManage = $isCoach && Gate::allows('kopling-sports-management::manage-matches');

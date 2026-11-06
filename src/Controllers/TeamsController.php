@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\Sport;
 use Kopling\SportsManagement\StaffRole;
+use Kopling\SportsManagement\TaskLinkMode;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamInvitation;
 use Kopling\SportsManagement\TeamMatch;
@@ -70,9 +71,10 @@ class TeamsController
             'invitations' => $team->invitations()->orderBy('email')->get(),
             'isOwner' => $team->isOwnedBy($request->user()),
             'sportLocked' => $team->matches()->exists(),
-            'tasks' => $isCoach && $team->tasks_enabled
+            'tasks' => $tasks = $isCoach && $team->tasks_enabled
                 ? $team->tasks()->with(['dates', 'upcomingOccurrences'])->orderBy('title')->get()
                 : collect(),
+            'duplicate' => $request->filled('duplicate') ? $tasks->find($request->query('duplicate')) : null,
         ]);
     }
 
@@ -110,6 +112,7 @@ class TeamsController
             'format_preset_id' => ['nullable', 'uuid', Rule::exists('sm_team_format_presets', 'id')->where('sport', $sport->value)],
             'public_matches' => ['sometimes', 'boolean'],
             'tasks_enabled' => ['sometimes', 'boolean'],
+            'tasks_link_mode' => ['sometimes', Rule::enum(TaskLinkMode::class)],
         ]);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\SportsManagement;
 
+use Carbon\CarbonInterval;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,7 @@ class Task extends Model
 
     protected $attributes = [
         'weight' => 1,
+        'undo_window' => 'any_time',
     ];
 
     protected $fillable = [
@@ -36,6 +38,7 @@ class Task extends Model
         'effort_cents',
         'weight',
         'enrolment',
+        'undo_window',
         'created_by',
     ];
 
@@ -44,6 +47,7 @@ class Task extends Model
         return [
             'schedule' => TaskSchedule::class,
             'enrolment' => TaskEnrolment::class,
+            'undo_window' => TaskUndoWindow::class,
             'recurrence' => 'array',
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
@@ -79,6 +83,41 @@ class Task extends Model
     public function upcomingOccurrences(): HasMany
     {
         return $this->occurrences()->whereNull('cancelled_at')->whereDate('date', '>=', now()->toDateString());
+    }
+
+    public function enlistments(): HasMany
+    {
+        return $this->hasMany(TaskEnlistment::class);
+    }
+
+    public function wholeTaskEnlistments(): HasMany
+    {
+        return $this->enlistments()->whereNull('occurrence_id')->orderBy('created_at');
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(TaskEnlistmentEvent::class)->latest();
+    }
+
+    public function durationSummary(): ?string
+    {
+        return $this->effort_minutes === null ? null : __('kopling-sports-management::messages.tasks.duration', [
+            'duration' => CarbonInterval::minutes($this->effort_minutes)->cascade()->forHumans(),
+        ]);
+    }
+
+    public function peopleSummary(): ?string
+    {
+        $key = 'kopling-sports-management::messages.tasks.';
+
+        return match (true) {
+            $this->min_people !== null && $this->min_people === $this->max_people => trans_choice($key.'people_exact', $this->min_people),
+            $this->min_people !== null && $this->max_people !== null => __($key.'people_range', ['min' => $this->min_people, 'max' => $this->max_people]),
+            $this->min_people !== null => __($key.'people_min', ['min' => $this->min_people]),
+            $this->max_people !== null => __($key.'people_max', ['max' => $this->max_people]),
+            default => null,
+        };
     }
 
     public function recurrenceRule(): ?TaskRecurrence

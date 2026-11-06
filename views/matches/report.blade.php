@@ -1,4 +1,5 @@
 @extends('kopling-sports-management::layouts.sports-management', ['sidebar' => false, 'label' => false])
+@section('title', __('kopling-sports-management::messages.view_tracking').' · '.($match->home_away === \Kopling\SportsManagement\HomeAway::Home ? $team->name.' – '.$match->opponent_name : $match->opponent_name.' – '.$team->name))
 
 @section('content')
     {{-- Same history handling as track.blade.php. --}}

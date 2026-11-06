@@ -1,6 +1,7 @@
 @extends('kopling-sports-management::layouts.live')
 @use('Kopling\SportsManagement\HomeAway')
 @use('Kopling\SportsManagement\MatchState')
+@section('title', ($homeAway === HomeAway::Home ? $teamName.' – '.$opponent : $opponent.' – '.$teamName).' · '.$state->label())
 
 @section('content')
     <div id="sm-live" class="flex flex-col gap-6"

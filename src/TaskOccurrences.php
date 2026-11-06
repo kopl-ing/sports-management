@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\DB;
 class TaskOccurrences
 {
     /**
-     * Occurrences are matched by match for match-bound tasks and by date otherwise, so a kept one keeps its id.
+     * Occurrences are matched by match for match-bound tasks and by date otherwise, so a kept one keeps its id;
+     * a dropped one with sign-ups is cancelled rather than deleted.
      */
     public static function sync(Task $task): void
     {
@@ -26,13 +27,17 @@ class TaskOccurrences
 
             foreach ($wanted as $key => $attributes) {
                 isset($existing[$key])
-                    ? $existing[$key]->update($attributes)
+                    ? $existing[$key]->update($attributes + ['cancelled_at' => null])
                     : $task->occurrences()->create($attributes);
                 unset($existing[$key]);
             }
 
             foreach ([...array_values($existing), ...$stale] as $occurrence) {
-                $occurrence->delete();
+                if (! $occurrence->enlistments()->exists()) {
+                    $occurrence->delete();
+                } elseif ($occurrence->cancelled_at === null) {
+                    $occurrence->update(['cancelled_at' => now()]);
+                }
             }
         });
     }

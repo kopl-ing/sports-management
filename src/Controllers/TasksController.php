@@ -12,16 +12,93 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Kopling\SportsManagement\Task;
+use Kopling\SportsManagement\TaskBoard;
 use Kopling\SportsManagement\TaskDate;
+use Kopling\SportsManagement\TaskEnlistment;
+use Kopling\SportsManagement\TaskEnlistments;
 use Kopling\SportsManagement\TaskEnrolment;
 use Kopling\SportsManagement\TaskFrequency;
 use Kopling\SportsManagement\TaskOccurrences;
 use Kopling\SportsManagement\TaskRecurrence;
+use Kopling\SportsManagement\TaskOccurrence;
 use Kopling\SportsManagement\TaskSchedule;
+use Kopling\SportsManagement\TaskUndoWindow;
 use Kopling\SportsManagement\Team;
+use Kopling\SportsManagement\TeamMember;
 
 class TasksController
 {
+    public function index(Request $request, Team $team): View
+    {
+        $this->authorizeCoach($request, $team);
+
+        $weeks = min(max($request->integer('weeks', TaskBoard::WEEKS), TaskBoard::WEEKS), 52);
+        $board = new TaskBoard($team, $weeks);
+        $openOnly = $request->query('filter') === 'open';
+        $occurrences = $board->occurrences
+            ->filter(fn (TaskOccurrence $occurrence) => ! $openOnly || $board->state($occurrence)->acceptsEnlisting())
+            ->load(['events.member.person', 'events.creator']);
+
+        return view('kopling-sports-management::tasks.index', [
+            'team' => $team,
+            'board' => $board,
+            'wholeTasks' => $board->wholeTasks()->load(['events' => fn ($query) => $query->whereNull('occurrence_id')->with(['member.person', 'creator'])]),
+            'weeks' => $occurrences->groupBy(fn (TaskOccurrence $occurrence) => $occurrence->date->startOfWeek()->toDateString()),
+            'players' => TeamMember::sorted($team->members()->where('guest', false)->with('person')->get())
+                ->mapWithKeys(fn (TeamMember $member) => [$member->id => $member->person->name])
+                ->all(),
+            'openOnly' => $openOnly,
+            'laterUrl' => $board->hasLater
+                ? route('kopling-sports-management::sports-management/tasks.index', ['team' => $team, 'weeks' => $weeks + TaskBoard::WEEKS] + ($openOnly ? ['filter' => 'open'] : []))
+                : null,
+        ]);
+    }
+
+    public function enlist(Request $request, Team $team, Task $task): RedirectResponse
+    {
+        $this->authorizeTask($request, $team, $task);
+
+        $data = $request->validate([
+            'team_member_id' => ['required', 'uuid'],
+            'occurrence_id' => ['nullable', 'uuid'],
+            'note' => ['nullable', 'string', 'max:100'],
+        ]);
+        $member = $team->members()->where('guest', false)->whereKey($data['team_member_id'])->first() ?? abort(404);
+        $occurrence = isset($data['occurrence_id']) ? ($task->occurrences()->whereKey($data['occurrence_id'])->first() ?? abort(404)) : null;
+
+        TaskEnlistments::enlist($task->setRelation('team', $team), $occurrence, $member, $data['note'] ?? null, $request->user());
+
+        return back();
+    }
+
+    public function leave(Request $request, Team $team, TaskEnlistment $enlistment): RedirectResponse
+    {
+        $this->authorizeTask($request, $team, $enlistment->task);
+
+        TaskEnlistments::leave($enlistment, $request->user());
+
+        return back();
+    }
+
+    public function regenerateLink(Request $request, Team $team): RedirectResponse
+    {
+        $this->authorizeCoach($request, $team);
+
+        $team->regenerateTasksToken();
+
+        return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
+    }
+
+    public function regenerateMemberLink(Request $request, Team $team, TeamMember $teamMember): RedirectResponse
+    {
+        $this->authorizeCoach($request, $team);
+        abort_unless($teamMember->team_id === $team->id, 404);
+
+        $teamMember->regenerateTasksToken();
+
+        return redirect()->route('kopling-sports-management::sports-management/teams.show', $team);
+    }
+
     public function store(Request $request, Team $team): RedirectResponse
     {
         $this->authorizeCoach($request, $team);
@@ -104,6 +181,7 @@ class TasksController
             'description' => ['nullable', 'string', 'max:5000'],
             'schedule' => ['required', Rule::enum(TaskSchedule::class)],
             'enrolment' => ['required', Rule::enum(TaskEnrolment::class)],
+            'undo_window' => ['required', Rule::enum(TaskUndoWindow::class)],
             'lead_minutes' => $only($schedule?->isMatchBound() ?? false, ['nullable', 'integer', 'min:0', 'max:1440']),
             'dates' => $only($onDates, ['array', 'max:100']),
             'dates.*.date' => $only($onDates, ['nullable', 'date_format:Y-m-d']),
@@ -160,6 +238,7 @@ class TasksController
             'effort_minutes' => $data['effort_minutes'] ?? null,
             'effort_cents' => isset($data['effort_amount']) ? (int) round($data['effort_amount'] * 100) : null,
             'weight' => $data['weight'],
+            'undo_window' => $data['undo_window'],
         ];
 
         return [$attributes, $dates];

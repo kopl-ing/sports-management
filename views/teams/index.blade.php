@@ -1,4 +1,5 @@
 @extends('kopling-sports-management::layouts.sports-management')
+@section('title', __('kopling-sports-management::messages.teams'))
 
 @section('content')
     <div class="max-w-3xl flex flex-col gap-6">

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Kopling\Core\Database\Model;
 use Kopling\Core\People\Person;
 
@@ -62,8 +63,38 @@ class TeamMember extends Model
             && ! $person->identities()->exists();
     }
 
+    public static function findByTasksToken(string $token): ?self
+    {
+        return static::where('tasks_token', $token)
+            ->where('guest', false)
+            ->whereHas('team', fn ($query) => $query->where('tasks_enabled', true)->where('tasks_link_mode', TaskLinkMode::PerPlayer))
+            ->first();
+    }
+
+    public function tasksUrl(): ?string
+    {
+        return $this->tasks_token === null ? null : route('kopling-sports-management::live/tasks.player', $this->tasks_token);
+    }
+
+    public function regenerateTasksToken(): void
+    {
+        $this->forceFill(['tasks_token' => Str::random(40)])->save();
+    }
+
+    /** First name and last initial ("Daan K."): enough for parents to recognise their own child. */
+    public function shortName(): string
+    {
+        $parts = preg_split('/\s+/u', trim($this->person->name), -1, PREG_SPLIT_NO_EMPTY) ?: ['?'];
+
+        return count($parts) > 1 ? $parts[0].' '.mb_strtoupper(mb_substr(end($parts), 0, 1)).'.' : $parts[0];
+    }
+
     protected static function booted(): void
     {
+        static::creating(function (self $member) {
+            $member->tasks_token ??= Str::random(40);
+        });
+
         static::deleted(function (self $member) {
             if ($member->holdsPersonOnly()) {
                 $member->person->delete();

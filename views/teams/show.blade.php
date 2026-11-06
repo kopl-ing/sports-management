@@ -1,10 +1,12 @@
 @extends('kopling-sports-management::layouts.sports-management')
+@section('title', $team->name)
 @php
     // Same _form convention as kopling-tags::admin.index.
     $reopening = old('_form');
     $canManageTeam = $isCoach && Gate::allows('kopling-sports-management::manage-teams');
     $canManageMatches = $isCoach && Gate::allows('kopling-sports-management::manage-matches');
     $positions = \Kopling\SportsManagement\Position::options($team->sport);
+    $playerLinks = $canManageTeam && $tasks->isNotEmpty() && $team->tasks_link_mode === \Kopling\SportsManagement\TaskLinkMode::PerPlayer;
 @endphp
 
 @section('content')
@@ -40,6 +42,7 @@
                         ])
                         <x-k::form.toggle :data="['name' => 'public_matches', 'label' => __('kopling-sports-management::messages.public.team_default'), 'description' => __('kopling-sports-management::messages.public.team_default_help'), 'value' => $reopening === 'modal-team-edit' ? old('public_matches') : $team->public_matches]" />
                         <x-k::form.toggle :data="['name' => 'tasks_enabled', 'label' => __('kopling-sports-management::messages.tasks.enabled'), 'description' => __('kopling-sports-management::messages.tasks.enabled_help'), 'value' => $reopening === 'modal-team-edit' ? old('tasks_enabled') : $team->tasks_enabled]" />
+                        <x-k::form.select :data="['name' => 'tasks_link_mode', 'label' => __('kopling-sports-management::messages.tasks.link_mode_label'), 'options' => \Kopling\SportsManagement\TaskLinkMode::options(), 'description' => __('kopling-sports-management::messages.tasks.link_mode_help'), 'value' => (string) ($reopening === 'modal-team-edit' ? old('tasks_link_mode') : $team->tasks_link_mode->value)]" />
                         @if ($reopening === 'modal-team-edit' && $errors->any())
                             <p class="text-error text-sm">{{ $errors->first() }}</p>
                         @endif
@@ -126,6 +129,9 @@
                                             </div>
                                         @endif
                                     </div>
+                                    @if ($playerLinks && ! $member->guest)
+                                        @include('kopling-sports-management::tasks.copy-link', ['url' => $member->tasksUrl(), 'compact' => true])
+                                    @endif
                                     @if ($canManageTeam)
                                         <x-k::modal :label="__('kopling-sports-management::messages.edit')" :id="$modalId">
                                             <x-slot:trigger>{{ __('kopling-sports-management::messages.edit') }}</x-slot:trigger>
@@ -145,12 +151,20 @@
                                                     <x-k::modal.cancel />
                                                 </div>
                                             </form>
-                                            <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.members.destroy', [$team, $member]) }}"
-                                                  hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_member') }}"
-                                                  class="mt-6 pt-4 border-t border-base-300">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-sports-management::messages.delete') }}</button>
-                                            </form>
+                                            <div class="flex flex-wrap gap-2 mt-6 pt-4 border-t border-base-300">
+                                                @if ($playerLinks && ! $member->guest)
+                                                    <form method="POST" action="{{ route('kopling-sports-management::sports-management/tasks.member-link', [$team, $member]) }}"
+                                                          hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.tasks.link.confirm_regenerate') }}">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm">{{ __('kopling-sports-management::messages.tasks.link.regenerate') }}</button>
+                                                    </form>
+                                                @endif
+                                                <form method="POST" action="{{ route('kopling-sports-management::sports-management/teams.members.destroy', [$team, $member]) }}"
+                                                      hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_delete_member') }}">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-sports-management::messages.delete') }}</button>
+                                                </form>
+                                            </div>
                                         </x-k::modal>
                                     @endif
                                 </li>

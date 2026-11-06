@@ -37,8 +37,13 @@ Route::middleware('can:kopling-sports-management::manage-teams')->group(function
     Route::post('/{team}/members/{teamMember}', [TeamMembersController::class, 'update'])->name('teams.members.update');
     Route::post('/{team}/members/{teamMember}/delete', [TeamMembersController::class, 'destroy'])->name('teams.members.destroy');
 
+    Route::get('/{team}/tasks', [TasksController::class, 'index'])->name('tasks.index');
     Route::get('/{team}/tasks/schedule-fields', [TasksController::class, 'scheduleFields'])->name('tasks.schedule-fields');
     Route::post('/{team}/tasks', [TasksController::class, 'store'])->middleware('throttle:60,60,sm-tasks')->name('tasks.store');
+    Route::post('/{team}/tasks/link', [TasksController::class, 'regenerateLink'])->name('tasks.link');
+    Route::post('/{team}/members/{teamMember}/tasks-link', [TasksController::class, 'regenerateMemberLink'])->name('tasks.member-link');
+    Route::post('/{team}/tasks/enlistments/{enlistment}/delete', [TasksController::class, 'leave'])->name('tasks.leave');
+    Route::post('/{team}/tasks/{task}/enlist', [TasksController::class, 'enlist'])->name('tasks.enlist');
     Route::post('/{team}/tasks/{task}', [TasksController::class, 'update'])->name('tasks.update');
     Route::post('/{team}/tasks/{task}/delete', [TasksController::class, 'destroy'])->name('tasks.destroy');
 });

@@ -1,5 +1,6 @@
 @extends('kopling-sports-management::layouts.sports-management', ['sidebar' => false, 'label' => false])
 @use('Kopling\SportsManagement\MatchState')
+@section('title', __('kopling-sports-management::messages.track_match').' · '.($match->home_away === \Kopling\SportsManagement\HomeAway::Home ? $team->name.' – '.$match->opponent_name : $match->opponent_name.' – '.$team->name))
 @use('Kopling\SportsManagement\PeriodType')
 @php
     $canMove = $isCoach && ($state === MatchState::Planned ? Gate::allows('kopling-sports-management::manage-matches') : $canTrack);

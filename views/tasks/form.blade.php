@@ -35,6 +35,7 @@
         <x-k::form.input :data="['name' => 'effort_minutes', 'label' => __('kopling-sports-management::messages.tasks.effort_minutes'), 'type' => 'number', 'value' => $field('effort_minutes', $task?->effort_minutes)]" />
         <x-k::form.input :data="['name' => 'effort_amount', 'label' => __('kopling-sports-management::messages.tasks.effort_amount'), 'type' => 'number', 'value' => $field('effort_amount', $task?->effort_cents === null ? null : $task->effort_cents / 100)]" />
     </div>
+    <x-k::form.select :data="['name' => 'undo_window', 'label' => __('kopling-sports-management::messages.tasks.undo_window_label'), 'options' => \Kopling\SportsManagement\TaskUndoWindow::options(), 'description' => __('kopling-sports-management::messages.tasks.undo_window_help'), 'value' => (string) $field('undo_window', $task?->undo_window->value ?? 'any_time'), 'required' => true]" />
     <x-k::form.input :data="['name' => 'weight', 'label' => __('kopling-sports-management::messages.tasks.weight'), 'type' => 'number', 'description' => __('kopling-sports-management::messages.tasks.weight_help'), 'value' => $field('weight', $task?->weight ?? 1), 'required' => true]" />
     @if ($filled && $errors->any())
         <p class="text-error text-sm">{{ $errors->first() }}</p>

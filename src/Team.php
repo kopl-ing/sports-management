@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Kopling\Core\Database\Model;
+use Illuminate\Support\Str;
 use Kopling\Core\People\Person;
 
 class Team extends Model
@@ -22,6 +23,7 @@ class Team extends Model
 
     protected $attributes = [
         'sport' => 'football',
+        'tasks_link_mode' => 'team',
     ];
 
     protected $fillable = [
@@ -32,6 +34,7 @@ class Team extends Model
         'format_preset_id',
         'public_matches',
         'tasks_enabled',
+        'tasks_link_mode',
     ];
 
     protected function casts(): array
@@ -40,6 +43,7 @@ class Team extends Model
             'sport' => Sport::class,
             'public_matches' => 'boolean',
             'tasks_enabled' => 'boolean',
+            'tasks_link_mode' => TaskLinkMode::class,
         ];
     }
 
@@ -136,8 +140,32 @@ class Team extends Model
         return $person !== null && $this->staff()->wherePivot('owner', true)->whereKey($person->id)->exists();
     }
 
+    public static function findByTasksToken(string $token): ?self
+    {
+        return static::where('tasks_token', $token)
+            ->where('tasks_enabled', true)
+            ->where('tasks_link_mode', TaskLinkMode::Team)
+            ->first();
+    }
+
+    public function tasksUrl(): ?string
+    {
+        return $this->tasks_token === null ? null : route('kopling-sports-management::live/tasks.team', $this->tasks_token);
+    }
+
+    public function regenerateTasksToken(): void
+    {
+        $this->forceFill(['tasks_token' => Str::random(40)])->save();
+    }
+
     protected static function booted(): void
     {
+        static::saving(function (self $team) {
+            if ($team->tasks_enabled && $team->tasks_token === null) {
+                $team->tasks_token = Str::random(40);
+            }
+        });
+
         // Per member, not left to the cascade, so each roster member's own Person goes too (see TeamMember).
         static::forceDeleting(function (self $team) {
             $team->members()->with('person')->get()->each->delete();

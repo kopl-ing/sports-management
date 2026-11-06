@@ -1,5 +1,7 @@
 @extends('kopling-moderation::layouts.moderation')
 
+@section('title', __('kopling-sports-management::messages.teams'))
+
 @section('content')
     <div class="flex flex-col gap-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
