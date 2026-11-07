@@ -7,6 +7,7 @@ namespace Kopling\SportsManagement\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Kopling\SportsManagement\Task;
@@ -17,6 +18,7 @@ use Kopling\SportsManagement\TaskEnlistments;
 use Kopling\SportsManagement\TaskOccurrence;
 use Kopling\SportsManagement\TaskOccurrenceState;
 use Kopling\SportsManagement\Team;
+use Kopling\SportsManagement\TeamMatch;
 use Kopling\SportsManagement\TeamMember;
 
 /**
@@ -167,6 +169,8 @@ class PublicTasksController
                     'undo' => $this->undoRule($occurrence->task, false),
                     'task_id' => $occurrence->task_id,
                     'date' => $occurrence->date,
+                    'starts_at' => $occurrence->startsAt(),
+                    'match_model' => $occurrence->match,
                     'time' => $occurrence->time === null ? null : substr($occurrence->time, 0, 5),
                     'title' => $occurrence->task->title,
                     'description' => $occurrence->task->description,
@@ -211,7 +215,7 @@ class PublicTasksController
                 ->values()
                 ->all(),
             'staffOnly' => $occurrences->filter(fn (array $row) => $row['staff_only'])->values()->all(),
-            'days' => $occurrences->reject(fn (array $row) => $row['staff_only'])->groupBy(fn (array $row) => $row['date']->toDateString())->all(),
+            'timeline' => $this->timeline($occurrences->reject(fn (array $row) => $row['staff_only'])),
             'balance' => $team->tasks_balance_public
                 ? TaskBalance::for($team)
                     ->reject(fn (array $row) => $row['left'])
@@ -227,6 +231,42 @@ class PublicTasksController
                 : null,
             'laterUrl' => $board->hasLater ? $links['url'].'?'.http_build_query(['weeks' => $weeks + TaskBoard::WEEKS]) : null,
         ]));
+    }
+
+    /**
+     * A match's tasks as one entry, loose dates in between merged into a shared list.
+     *
+     * @param Collection<int, array<string, mixed>> $rows
+     * @return list<array{match: ?TeamMatch, label: ?string, rows: list<array<string, mixed>>}>
+     */
+    private function timeline(Collection $rows): array
+    {
+        $entries = $rows
+            ->groupBy(fn (array $row) => $row['match_model']?->id ?? 'occurrence:'.$row['id'])
+            ->map(fn (Collection $group) => [
+                'match' => $match = $group->first()['match_model'],
+                'label' => $group->first()['match'],
+                'sort' => $match?->scheduled_at ?? $group->first()['starts_at'],
+                'rows' => $group->map(fn (array $row) => $row + [
+                    'line' => $match === null
+                        ? $row['when']
+                        : ($row['date']->isSameDay($match->scheduled_at) ? $row['time'] : $row['starts_at']->translatedFormat($row['time'] === null ? 'D j M' : 'D j M, H:i')),
+                ])->values()->all(),
+            ])
+            ->sortBy('sort')
+            ->values();
+
+        $timeline = [];
+        foreach ($entries as $entry) {
+            $last = array_key_last($timeline);
+            if ($entry['match'] === null && $last !== null && $timeline[$last]['match'] === null) {
+                $timeline[$last]['rows'] = [...$timeline[$last]['rows'], ...$entry['rows']];
+            } else {
+                $timeline[] = ['match' => $entry['match'], 'label' => $entry['label'], 'rows' => $entry['rows']];
+            }
+        }
+
+        return $timeline;
     }
 
     private function enlist(Request $request, Team $team, TeamMember $member, string $back): RedirectResponse

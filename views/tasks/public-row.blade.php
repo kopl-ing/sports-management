@@ -8,15 +8,20 @@
         @if ($row['description'])
             <p class="text-sm opacity-60 truncate">{{ $row['description'] }}</p>
         @endif
-        @if ($when || $row['match'])
-            <div class="text-sm opacity-60">{{ collect([$when, $row['match']])->filter()->join(' · ') }}</div>
+        @if ($when || ($row['match'] && ! ($inMatch ?? false)))
+            <div class="text-sm opacity-60">{{ collect([$when, ($inMatch ?? false) ? null : $row['match']])->filter()->join(' · ') }}</div>
         @endif
         @if ($row['people'] !== [] || $row['skipped'] !== [])
             <ul class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                 @foreach ($row['people'] as $person)
                     <li class="flex items-center gap-1 text-sm">
                         <x-k::person.avatar :name="$person['name']" :color="$person['color']" :mask="null" size="w-5" />
-                        <span class="{{ $person['mine'] ? 'font-semibold' : 'opacity-80' }}">{{ $person['name'] }}</span>
+                        @if ($person['note'])
+                            <span class="{{ $person['mine'] ? 'font-semibold' : '' }}">{{ $person['note'] }}</span>
+                            <span class="opacity-60">&middot; {{ __('kopling-sports-management::messages.tasks.on_behalf', ['name' => $person['name']]) }}</span>
+                        @else
+                            <span class="{{ $person['mine'] ? 'font-semibold' : 'opacity-80' }}">{{ $person['name'] }}</span>
+                        @endif
                         @if ($person['regular'])
                             <span class="badge badge-xs badge-ghost">{{ __('kopling-sports-management::messages.tasks.regular') }}</span>
                         @endif

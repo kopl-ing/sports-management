@@ -44,12 +44,17 @@
             @endif
 
 
-            @forelse ($days as $date => $rows)
-                <section class="flex flex-col gap-2">
-                    <h2 class="text-sm opacity-60">{{ $rows[0]['date']->translatedFormat('l j F') }}</h2>
-                    <ul class="list card card-border bg-base-100">
-                        @foreach ($rows as $row)
-                            @include('kopling-sports-management::tasks.public-row', ['when' => $row['time'], 'occurrenceId' => $row['id'], 'state' => $row['state']])
+            @forelse ($timeline as $entry)
+                <section class="card card-border bg-base-100">
+                    @if ($entry['match'])
+                        <div class="px-4 pt-3">
+                            <h2 class="font-semibold">{{ \Illuminate\Support\Str::ucfirst($entry['label']) }}</h2>
+                            <p class="text-sm opacity-60">{{ $entry['match']->scheduled_at->translatedFormat('l j F, H:i') }}</p>
+                        </div>
+                    @endif
+                    <ul class="list">
+                        @foreach ($entry['rows'] as $row)
+                            @include('kopling-sports-management::tasks.public-row', ['when' => $row['line'], 'inMatch' => $entry['match'] !== null, 'occurrenceId' => $row['id'], 'state' => $row['state']])
                         @endforeach
                     </ul>
                 </section>

@@ -70,12 +70,14 @@
                                 @foreach ($enlistments as $enlistment)
                                     @php $outcome = $enlistment->outcomeFor($occurrence); @endphp
                                     <li class="flex flex-wrap items-center gap-2 text-sm">
-                                        <span>{{ $enlistment->member->person->name }}</span>
+                                        @if ($enlistment->note)
+                                            <span>{{ $enlistment->note }}</span>
+                                            <span class="opacity-60 truncate">&middot; {{ __('kopling-sports-management::messages.tasks.on_behalf', ['name' => $enlistment->member->person->name]) }}</span>
+                                        @else
+                                            <span>{{ $enlistment->member->person->name }}</span>
+                                        @endif
                                         @if ($enlistment->isWholeTask())
                                             <span class="badge badge-xs badge-outline">{{ __('kopling-sports-management::messages.tasks.enrolment.whole_task') }}</span>
-                                        @endif
-                                        @if ($enlistment->note)
-                                            <span class="opacity-60 truncate">&middot; {{ $enlistment->note }}</span>
                                         @endif
                                         <div class="flex items-center gap-1 ms-auto">
                                         @if ($approving)

@@ -27,15 +27,17 @@
             <ul class="flex flex-col gap-1">
                 @foreach ($enlistments as $enlistment)
                     <li class="flex items-center gap-2 text-sm">
-                        <span>{{ $enlistment->member->person->name }}</span>
+                        @if ($enlistment->note)
+                            <span>{{ $enlistment->note }}</span>
+                            <span class="opacity-60 truncate">&middot; {{ __('kopling-sports-management::messages.tasks.on_behalf', ['name' => $enlistment->member->person->name]) }}</span>
+                        @else
+                            <span>{{ $enlistment->member->person->name }}</span>
+                        @endif
                         @if ($occurrence && $enlistment->isWholeTask())
                             <span class="badge badge-xs badge-ghost">{{ __('kopling-sports-management::messages.tasks.regular') }}</span>
                         @endif
                         @if ($enlistment->created_by)
                             <span class="badge badge-xs badge-outline" title="{{ $enlistment->creator?->name }}">{{ __('kopling-sports-management::messages.tasks.assigned') }}</span>
-                        @endif
-                        @if ($enlistment->note)
-                            <span class="opacity-60 truncate">&middot; {{ $enlistment->note }}</span>
                         @endif
                         @if ($occurrence && $enlistment->isWholeTask())
                             @include('kopling-sports-management::tasks.date-change', ['action' => 'skip'])

@@ -405,6 +405,7 @@ return [
             'away' => 'away at :opponent',
         ],
         'regular' => 'regular',
+        'on_behalf' => 'for :name',
         'off_this_date' => 'off this date',
         'skip_date' => 'Off this date',
         'restore_date' => 'Put back',
