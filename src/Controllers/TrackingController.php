@@ -50,7 +50,7 @@ class TrackingController
         $this->authorizeView($request, $team, $teamMatch);
 
         $team->load(['formatPreset', 'members' => fn ($query) => $query->onTeamAt($teamMatch->scheduled_at)->with('person')]);
-        $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
+        $teamMatch->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions', 'fieldSizes']);
         $timeline = $teamMatch->timeline();
         $involved = $teamMatch->lineup->pluck('team_member_id')
             ->concat($teamMatch->substitutions->pluck('team_member_id'))
@@ -68,7 +68,7 @@ class TrackingController
             'match' => $teamMatch,
             'timeline' => $timeline,
             'members' => TeamMember::sorted($members)->keyBy('id'),
-            'maxOnField' => $timeline->state() === MatchState::Planned ? $teamMatch->effectiveFormatPreset()?->players_on_field : $teamMatch->effectiveMaxOnField($timeline),
+            'maxOnField' => $teamMatch->effectiveMaxOnField($timeline),
             'unavailable' => $teamMatch->unavailableMemberIds($timeline),
             'penaltyLeft' => $timeline->penaltySecondsLeft(),
             'awaitingReturn' => $timeline->awaitingReturn(),
@@ -180,6 +180,7 @@ class TrackingController
             $teamMatch->goals()->whereKey($undo['goals'])->delete();
             $teamMatch->sanctions()->whereKey($undo['sanctions'] ?? [])->delete();
             $teamMatch->substitutions()->whereKey($undo['substitutions'])->delete();
+            $teamMatch->fieldSizes()->whereKey($undo['field_sizes'] ?? [])->delete();
         }
 
         return $this->backToTracking($team, $teamMatch);
@@ -194,15 +195,29 @@ class TrackingController
      * @param array<int, string> $goals
      * @param array<int, string> $substitutions
      * @param array<int, string> $sanctions
+     * @param array<int, string> $fieldSizes
      */
-    private function rememberUndo(TeamMatch $teamMatch, array $goals = [], array $substitutions = [], array $sanctions = []): void
+    private function rememberUndo(TeamMatch $teamMatch, array $goals = [], array $substitutions = [], array $sanctions = [], array $fieldSizes = []): void
     {
         session()->put(self::undoKey($teamMatch), [
             'at' => now()->timestamp,
             'goals' => $goals,
             'substitutions' => $substitutions,
             'sanctions' => $sanctions,
+            'field_sizes' => $fieldSizes,
         ]);
+    }
+
+    public function updateFieldSize(Request $request, Team $team, TeamMatch $teamMatch): RedirectResponse
+    {
+        $this->authorizeCoach($request, $team, $teamMatch);
+        abort_unless(Gate::allows($teamMatch->periods()->exists() ? 'kopling-sports-management::track-matches' : 'kopling-sports-management::manage-matches'), 403);
+
+        if ($change = TrackMatch::setFieldSize($teamMatch, $request->all())) {
+            $this->rememberUndo($teamMatch, fieldSizes: [$change->id]);
+        }
+
+        return $this->backToTracking($team, $teamMatch);
     }
 
     public function destroySubstitution(Request $request, Team $team, TeamMatch $teamMatch, MatchSubstitution $substitution): RedirectResponse

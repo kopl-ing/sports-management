@@ -86,7 +86,7 @@ class MatchesController
         $placement = $teamMatch->lineup()->get()->mapWithKeys(fn (MatchLineup $slot) => [$slot->team_member_id => $slot->zone])->all();
 
         $changes = FieldMove::fromRequest($data, $placement);
-        if ($error = FieldMove::limitError($placement, $changes, $teamMatch->effectiveFormatPreset()?->players_on_field, $teamMatch->sportConfig()->keeperZone($teamMatch->effectiveFormatPreset()))) {
+        if ($error = FieldMove::limitError($placement, $changes, $teamMatch->effectivePlayersOnField(), $teamMatch->sportConfig()->keeperZone($teamMatch->effectiveFormatPreset()))) {
             throw ValidationException::withMessages(['zone' => $error]);
         }
 

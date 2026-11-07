@@ -93,9 +93,18 @@
                         <x-k::icon name="kopling-sports-management::stop" />
                     </button>
                 </form>
-            @elseif ($state === MatchState::Ended)
-                <x-k::dropdown :label="__('kopling-sports-management::messages.more_actions')">
-                    <x-slot:trigger>&vellip;</x-slot:trigger>
+            @endif
+        @endif
+
+        @if ($fieldSizing || ($timing && $state === MatchState::Ended))
+            <x-k::dropdown :label="__('kopling-sports-management::messages.more_actions')">
+                <x-slot:trigger>&vellip;</x-slot:trigger>
+                @if ($fieldSizing)
+                    <li>
+                        <button type="button" data-modal-show="modal-field-size">{{ __('kopling-sports-management::messages.players_on_field') }}</button>
+                    </li>
+                @endif
+                @if ($timing && $state === MatchState::Ended)
                     <li>
                         <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.periods.start', [$team, $match]) }}"
                               hx-boost="true" hx-confirm="{{ __('kopling-sports-management::messages.confirm_resume_match') }}">
@@ -104,8 +113,39 @@
                             <button type="submit" class="w-full text-start">{{ __('kopling-sports-management::messages.resume_match') }}</button>
                         </form>
                     </li>
-                </x-k::dropdown>
-            @endif
+                @endif
+            </x-k::dropdown>
+        @endif
+
+        @if ($fieldSizing)
+            {{-- Outside the dropdown, same as the edit modal on `matches/show.blade.php`. --}}
+            <x-k::modal :label="__('kopling-sports-management::messages.players_on_field')" id="modal-field-size">
+                <x-slot:trigger class="hidden"></x-slot:trigger>
+                <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.field-size', [$team, $match]) }}" class="flex flex-col gap-4">
+                    @csrf
+                    <input type="hidden" name="_form" value="modal-field-size">
+                    <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.players_on_field') }}</h2>
+                    <x-k::form.input :data="[
+                        'name' => 'players_on_field',
+                        'label' => __('kopling-sports-management::messages.players_on_field'),
+                        'type' => 'number',
+                        'min' => 1,
+                        'max' => 30,
+                        'required' => true,
+                        'description' => $state === MatchState::Planned
+                            ? __('kopling-sports-management::messages.players_on_field_agreed')
+                            : __('kopling-sports-management::messages.players_on_field_live_help'),
+                        'value' => old('_form') === 'modal-field-size' ? old('players_on_field') : $fieldSize,
+                    ]" />
+                    @if (old('_form') === 'modal-field-size' && $errors->any())
+                        <p class="text-error text-sm">{{ $errors->first() }}</p>
+                    @endif
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary">{{ __('kopling-sports-management::messages.save') }}</button>
+                        <x-k::modal.cancel />
+                    </div>
+                </form>
+            </x-k::modal>
         @endif
     </div>
 </div>

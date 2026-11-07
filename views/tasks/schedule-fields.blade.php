@@ -20,7 +20,7 @@
     <x-k::form.select :data="['name' => 'schedule', 'label' => __('kopling-sports-management::messages.tasks.schedule_label'), 'options' => TaskSchedule::options(), 'value' => $schedule->value, 'required' => true]" />
 
     @if ($schedule->isMatchBound())
-        <x-k::form.input :data="['name' => 'lead_minutes', 'label' => __('kopling-sports-management::messages.tasks.lead_minutes'), 'type' => 'number', 'description' => __('kopling-sports-management::messages.tasks.lead_minutes_help'), 'value' => $v('lead_minutes')]" />
+        <x-k::form.input :data="['name' => 'lead_minutes', 'label' => __('kopling-sports-management::messages.tasks.lead_minutes'), 'type' => 'number', 'min' => 0, 'max' => 1440, 'description' => __('kopling-sports-management::messages.tasks.lead_minutes_help'), 'value' => $v('lead_minutes')]" />
     @elseif ($schedule === TaskSchedule::Dates)
         <fieldset class="fieldset">
             <legend class="fieldset-legend">{{ __('kopling-sports-management::messages.tasks.dates_label') }}</legend>
@@ -47,7 +47,7 @@
     @else
         <x-k::form.select :data="['name' => 'frequency', 'label' => __('kopling-sports-management::messages.tasks.frequency_label'), 'options' => TaskFrequency::options(), 'value' => $frequency->value]" />
         @if ($frequency !== TaskFrequency::Yearly)
-            <x-k::form.input :data="['name' => 'interval', 'label' => __('kopling-sports-management::messages.tasks.interval.'.$frequency->value), 'type' => 'number', 'value' => $v('interval', 1)]" />
+            <x-k::form.input :data="['name' => 'interval', 'label' => __('kopling-sports-management::messages.tasks.interval.'.$frequency->value), 'type' => 'number', 'min' => 1, 'max' => 52, 'value' => $v('interval', 1)]" />
         @endif
         @if ($frequency === TaskFrequency::Weekly)
             <x-k::form.select :data="['name' => 'weekday', 'label' => __('kopling-sports-management::messages.tasks.weekday'), 'options' => $weekdays, 'value' => $v('weekday', 6)]" />
@@ -59,11 +59,11 @@
                     <x-k::form.select :data="['name' => 'weekday', 'label' => __('kopling-sports-management::messages.tasks.weekday'), 'options' => $weekdays, 'value' => $v('weekday', 6)]" />
                 </div>
             @else
-                <x-k::form.input :data="['name' => 'day', 'label' => __('kopling-sports-management::messages.tasks.day'), 'type' => 'number', 'description' => __('kopling-sports-management::messages.tasks.day_help'), 'value' => $v('day', 1)]" />
+                <x-k::form.input :data="['name' => 'day', 'label' => __('kopling-sports-management::messages.tasks.day'), 'type' => 'number', 'min' => 1, 'max' => 31, 'description' => __('kopling-sports-management::messages.tasks.day_help'), 'value' => $v('day', 1)]" />
             @endif
         @else
             <div class="grid grid-cols-2 gap-4">
-                <x-k::form.input :data="['name' => 'day', 'label' => __('kopling-sports-management::messages.tasks.day'), 'type' => 'number', 'value' => $v('day', 1)]" />
+                <x-k::form.input :data="['name' => 'day', 'label' => __('kopling-sports-management::messages.tasks.day'), 'type' => 'number', 'min' => 1, 'max' => 31, 'value' => $v('day', 1)]" />
                 <x-k::form.select :data="['name' => 'month', 'label' => __('kopling-sports-management::messages.tasks.month'), 'options' => $months, 'value' => $v('month', 9)]" />
             </div>
         @endif

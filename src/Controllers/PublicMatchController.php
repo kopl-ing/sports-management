@@ -27,7 +27,7 @@ class PublicMatchController
     {
         $match = TeamMatch::findPublic($token) ?? abort(404);
         $team = $match->team->load(['formatPreset', 'members' => fn ($query) => $query->onTeamAt($match->scheduled_at)->with('person')]);
-        $match->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions']);
+        $match->setRelation('team', $team)->load(['formatPreset', 'availabilities', 'lineup', 'slots', 'periods', 'substitutions', 'goals', 'sanctions', 'fieldSizes']);
 
         $timeline = $match->timeline();
         $state = $timeline->state();

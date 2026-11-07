@@ -88,7 +88,7 @@ abstract class MatchTool extends TeamTool
     public static function state(TeamMatch $match): array
     {
         $team = $match->team;
-        $match = TeamMatch::with(['formatPreset', 'availabilities', 'periods', 'substitutions', 'goals', 'sanctions'])->findOrFail($match->id)->setRelation('team', $team);
+        $match = TeamMatch::with(['formatPreset', 'availabilities', 'periods', 'substitutions', 'goals', 'sanctions', 'fieldSizes'])->findOrFail($match->id)->setRelation('team', $team);
         $config = $match->sportConfig();
         $preset = $match->effectiveFormatPreset();
         $timeline = $match->timeline();
@@ -102,12 +102,19 @@ abstract class MatchTool extends TeamTool
         $members = TeamMember::sorted($team->members()->onTeamAt($match->scheduled_at)->with('person')->get())
             ->reject(fn (TeamMember $member) => in_array($member->id, $absent, true) && ! array_key_exists($member->id, $onField))
             ->keyBy('id');
+        $started = $match->periods->isNotEmpty();
+        $now = $timeline->matchSeconds();
+        $moved = $timeline->lastMoves();
+        $target = $match->fairShareSeconds($members->count());
         $player = fn (TeamMember $member) => array_filter([
             'id' => $member->id,
             'name' => $member->person->name,
             'jersey_number' => $member->jersey_number,
             'zone' => ($zone = $onField[$member->id] ?? null) ? $zone->value : null,
             'minutes_played' => intdiv($played[$member->id] ?? 0, 60),
+            'minutes_on_bench' => $started ? intdiv($now - ($played[$member->id] ?? 0), 60) : null,
+            'stint_minutes' => $started ? intdiv($now - ($moved[$member->id] ?? 0), 60) : null,
+            'minutes_to_target' => $target === null ? null : intdiv($target - ($played[$member->id] ?? 0), 60),
             'penalty_seconds_left' => $penalties[$member->id] ?? null,
             'unavailable' => in_array($member->id, $unavailable, true) ?: null,
         ], fn ($value) => $value !== null);
@@ -120,6 +127,7 @@ abstract class MatchTool extends TeamTool
             'minute' => $match->periods->isEmpty() ? null : intdiv($timeline->matchSeconds(), 60),
             'running_period' => $running ? ['type' => $running->type->value, 'label' => $timeline->label($running)] : null,
             'max_on_field' => $match->effectiveMaxOnField($timeline),
+            'equal_share' => self::equalShare($match, $members->count()),
             'on_field' => $members->filter(fn (TeamMember $member) => array_key_exists($member->id, $onField))->map($player)->values()->all(),
             'bench' => $members->reject(fn (TeamMember $member) => array_key_exists($member->id, $onField))->map($player)->values()->all(),
             'zones' => collect($config->zones($preset))->mapWithKeys(fn (Position $zone) => [$zone->value => $zone->label($team->sport)])->all(),

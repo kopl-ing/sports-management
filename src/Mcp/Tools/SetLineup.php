@@ -47,7 +47,7 @@ class SetLineup extends TeamTool
 
         $placement = $this->placement($match, (array) $request->get('lineup'));
         $preset = $match->effectiveFormatPreset();
-        if ($error = FieldMove::limitError([], $placement, $preset?->players_on_field, $match->sportConfig()->keeperZone($preset))) {
+        if ($error = FieldMove::limitError([], $placement, $match->effectivePlayersOnField(), $match->sportConfig()->keeperZone($preset))) {
             throw ValidationException::withMessages(['lineup' => $error]);
         }
 
@@ -63,18 +63,16 @@ class SetLineup extends TeamTool
         });
 
         $names = $team->members()->with('person')->get()->keyBy('id');
+        $available = array_diff($team->members()->onTeamAt($match->scheduled_at)->pluck('id')->all(), $match->absentMemberIds());
 
         return Response::json([
             'lineup' => $match->lineup()->get()->sortBy(fn (MatchLineup $row) => array_search($row->team_member_id, array_keys($placement), true))->map(fn (MatchLineup $row) => [
                 'player' => $names->get($row->team_member_id)?->person->name,
                 'zone' => $row->zone?->value,
             ])->values()->all(),
-            'bench' => $names->only(array_diff(
-                $team->members()->onTeamAt($match->scheduled_at)->pluck('id')->all(),
-                array_keys($placement),
-                $match->absentMemberIds(),
-            ))->map(fn ($member) => $member->person->name)->values()->all(),
-            'players_on_field' => $preset?->players_on_field,
+            'bench' => $names->only(array_diff($available, array_keys($placement)))->map(fn ($member) => $member->person->name)->values()->all(),
+            'players_on_field' => $match->effectivePlayersOnField(),
+            'equal_share' => self::equalShare($match, count($available)),
         ]);
     }
 

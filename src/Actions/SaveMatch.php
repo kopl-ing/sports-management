@@ -6,10 +6,12 @@ namespace Kopling\SportsManagement\Actions;
 
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Kopling\SportsManagement\AvailabilityStatus;
 use Kopling\SportsManagement\HomeAway;
 use Kopling\SportsManagement\RefereeDuty;
 use Kopling\SportsManagement\Team;
+use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMatch;
 
 /**
@@ -24,7 +26,19 @@ class SaveMatch
     {
         $data = self::validated($team, $input);
 
+        if (isset($data['players_on_field'])) {
+            $presetId = array_key_exists('format_preset_id', $data) ? $data['format_preset_id'] : $match?->format_preset_id;
+            $preset = $presetId === null ? $team->formatPreset : TeamFormatPreset::find($presetId);
+            if ((int) $data['players_on_field'] === $preset?->players_on_field) {
+                $data['players_on_field'] = null;
+            }
+        }
+
         if ($match !== null) {
+            if (array_key_exists('players_on_field', $data) && $data['players_on_field'] != $match->players_on_field && $match->periods()->exists()) {
+                throw ValidationException::withMessages(['players_on_field' => __('kopling-sports-management::messages.players_on_field_started')]);
+            }
+
             $match->update($data);
 
             return $match;
@@ -51,7 +65,9 @@ class SaveMatch
             'location_address' => ['nullable', 'string', 'max:1000'],
             'format_preset_id' => ['nullable', 'uuid', Rule::exists('sm_team_format_presets', 'id')->where('sport', $team->sport->value)],
             'play_minutes' => ['nullable', 'integer', 'min:1', 'max:240'],
-            'scheduled_at' => ['required', 'date'],
+            'players_on_field' => ['nullable', 'integer', 'min:1', 'max:30'],
+            // Stored as local wall-clock time, so an offset would be silently dropped.
+            'scheduled_at' => ['required', 'date_format:Y-m-d\TH:i,Y-m-d H:i,Y-m-d\TH:i:s,Y-m-d H:i:s'],
             'referee_person_id' => ['nullable', 'uuid', Rule::in($team->referees()->pluck('people.id')->all())],
             'referee_duties' => ['nullable', 'array', 'required_with:referee_person_id'],
             'referee_duties.*' => [Rule::in(array_map(fn (RefereeDuty $duty) => $duty->value, RefereeDuty::for($team->sport)))],

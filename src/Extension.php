@@ -21,6 +21,7 @@ use Kopling\Core\Extension\Contract\HasMcpTools;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RegistersModerationTargets;
+use Kopling\Core\Extension\Manager;
 use Kopling\Core\People\Person;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
@@ -197,19 +198,27 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             ->in('kopling-moderation::moderation.sidebar-panel')
             ->as('moderation-nav');
 
-        if (class_exists(\Kopling\Mcp\Ux\TeamCalls::class)) {
+        if (self::loaded('kopling/mcp')) {
             $ux->add(\Kopling\Mcp\Ux\TeamCalls::class)
                 ->in(self::TEAM_OWNER_SLOT)
                 ->as('assistant-activity');
         }
 
-        if (class_exists(\Kopling\Moderation\Ux\ReportControlEntry::class)) {
+        if (self::loaded('kopling/moderation')) {
             $ux->add(\Kopling\Moderation\Ux\ReportControlEntry::class)
                 ->in(self::TEAM_CONTROL_SLOT)
                 ->as('team-report');
         }
 
         return $ux;
+    }
+
+    /**
+     * Installed is not enough: a disabled or undiscovered extension's classes still load, but its views and components don't.
+     */
+    private static function loaded(string $package): bool
+    {
+        return array_key_exists($package, app(Manager::class)->extensions());
     }
 
     /**
@@ -228,6 +237,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                     Mcp\Tools\ListMatches::class,
                     Mcp\Tools\GetMatch::class,
                     Mcp\Tools\LiveMatch::class,
+                    Mcp\Tools\SuggestSubstitution::class,
                     Mcp\Tools\ListTasks::class,
                     Mcp\Tools\TaskPlanning::class,
                     Mcp\Tools\TaskBalance::class,

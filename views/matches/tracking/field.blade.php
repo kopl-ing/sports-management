@@ -24,7 +24,7 @@
 
     <div class="relative flex items-center justify-between text-sm">
         <span class="opacity-60">{{ $state === MatchState::Planned ? __('kopling-sports-management::messages.lineup') : $team->sport->trans('on_field') }}</span>
-        <span class="tabular-nums opacity-60">{{ count($placement) }}{{ $maxOnField ? ' / '.$maxOnField : '' }}</span>
+        <span @class(['tabular-nums', 'text-error font-semibold' => $maxOnField && count($placement) > $maxOnField, 'opacity-60' => ! $maxOnField || count($placement) <= $maxOnField])>{{ count($placement) }}{{ $maxOnField ? ' / '.$maxOnField : '' }}</span>
         @if ($scoring || $sanctioning)
             <div class="hidden group-data-[sm-goal]:flex absolute inset-x-0 bottom-0 z-10 alert alert-success py-2 shadow-md">
                 <span class="hidden group-data-[sm-goal=scorer]:inline">{{ $team->sport->trans('tap_scorer') }}</span>

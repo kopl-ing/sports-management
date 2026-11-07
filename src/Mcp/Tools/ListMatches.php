@@ -19,7 +19,7 @@ class ListMatches extends TeamTool
 {
     protected string $name = 'list-matches';
 
-    protected string $description = 'A team\'s matches, by date, with opponent, home or away, season period, state and score. Referees only see the matches they referee.';
+    protected string $description = 'A team\'s matches, by date, with opponent, home or away, kick-off (scheduled_at, the club\'s local time without time zone), season period, state and score. Referees only see the matches they referee.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -63,7 +63,7 @@ class ListMatches extends TeamTool
             'id' => $match->id,
             'opponent' => $match->opponent_name,
             'home_away' => $match->home_away->value,
-            'scheduled_at' => $match->scheduled_at->toIso8601String(),
+            'scheduled_at' => $match->scheduled_at->format('Y-m-d\TH:i'),
             'period' => $team->periodOn($match->scheduled_at)?->name,
             'location' => $match->location_address,
             'state' => $state->value,

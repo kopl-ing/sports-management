@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\Component;
 use Kopling\Core\Ux\Context;
+use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\PeriodType;
 use Kopling\SportsManagement\TeamMatch;
 
@@ -33,12 +34,18 @@ class MatchControls extends Component
         $match->setRelation('team', $this->request->route('team'));
         $timeline = $match->timeline();
         $running = $timeline->runningPeriod();
+        $state = $timeline->state();
+        $fieldSizing = $state !== MatchState::Ended
+            && $match->team->isCoachedBy($this->request->user())
+            && Gate::allows($state === MatchState::Planned ? 'kopling-sports-management::manage-matches' : 'kopling-sports-management::track-matches');
 
         return view('kopling-sports-management::ux.match-controls', [
             'team' => $this->request->route('team'),
             'match' => $match,
             'timeline' => $timeline,
-            'state' => $timeline->state(),
+            'state' => $state,
+            'fieldSizing' => $fieldSizing,
+            'fieldSize' => $timeline->fieldSizeAt($timeline->matchSeconds()),
             'score' => $timeline->score(),
             'running' => $running,
             'playPeriodSeconds' => $match->playPeriodSeconds(),

@@ -16,6 +16,7 @@ class MatchTimeline
      * @param Collection<int, MatchSubstitution> $substitutions
      * @param Collection<int, MatchGoal> $goals
      * @param Collection<int, MatchSanction> $sanctions
+     * @param Collection<int, MatchFieldSize> $fieldSizes
      */
     public function __construct(
         private readonly Collection $periods,
@@ -24,6 +25,8 @@ class MatchTimeline
         ?CarbonInterface $now = null,
         private readonly ?int $breaks = null,
         private readonly Collection $sanctions = new Collection(),
+        private readonly ?int $fieldSize = null,
+        private readonly Collection $fieldSizes = new Collection(),
     ) {
         $this->now = $now ?? now();
     }
@@ -184,6 +187,14 @@ class MatchTimeline
     }
 
     /**
+     * @return array<string, int> match second each player last went on or off the field, keyed by team member id
+     */
+    public function lastMoves(): array
+    {
+        return $this->replay()['moved'];
+    }
+
+    /**
      * @return array<string, Position|null> zone per team member id currently on the field
      */
     public function onField(): array
@@ -227,6 +238,65 @@ class MatchTimeline
             return $start !== null && $sanction->kind->shortensTeam()
                 && ($sanction->duration_seconds === null || $start + $sanction->duration_seconds > $now);
         })->count();
+    }
+
+    public function fieldSizeAt(int $matchSecond): ?int
+    {
+        $size = $this->fieldSize;
+        foreach ($this->fieldSizeChanges() as ['second' => $second, 'players' => $players]) {
+            if ($second > $matchSecond) {
+                break;
+            }
+            $size = $players;
+        }
+
+        return $size;
+    }
+
+    /**
+     * Seconds spent at each field size over the first `$seconds` of play; time still to come counts at the latest size.
+     *
+     * @return array<int, array{0: int, 1: int}> seconds and players on the field, in match order
+     */
+    public function fieldSizeSpans(int $seconds): array
+    {
+        if ($this->fieldSize === null) {
+            return [];
+        }
+
+        $spans = [];
+        $from = 0;
+        $size = $this->fieldSize;
+        foreach ($this->fieldSizeChanges() as ['second' => $second, 'players' => $players]) {
+            $at = min($second, $seconds);
+            if ($at > $from) {
+                $spans[] = [$at - $from, $size];
+                $from = $at;
+            }
+            $size = $players;
+        }
+        if ($seconds > $from) {
+            $spans[] = [$seconds - $from, $size];
+        }
+
+        return $spans;
+    }
+
+    /**
+     * @return array<int, array{second: int, players: int}>
+     */
+    private function fieldSizeChanges(): array
+    {
+        return $this->fieldSizes
+            ->filter(fn (MatchFieldSize $change) => $this->periods->contains('id', $change->period_id))
+            ->map(fn (MatchFieldSize $change) => [
+                'second' => $this->matchSecond($this->periods->firstWhere('id', $change->period_id), $change->offset_seconds),
+                'players' => $change->players_on_field,
+                'at' => $change->created_at,
+            ])
+            ->sortBy([['second', 'asc'], ['at', 'asc']])
+            ->values()
+            ->all();
     }
 
     /**
@@ -296,13 +366,15 @@ class MatchTimeline
     /**
      * Replays up to and including `$until` at `$untilOffset` when given, otherwise the whole match.
      *
-     * @return array{played: array<string, int>, positions: array<string, array<string, int>>, onField: array<string, Position|null>}
+     * @return array{played: array<string, int>, positions: array<string, array<string, int>>, onField: array<string, Position|null>, moved: array<string, int>}
      */
     private function replay(?MatchPeriod $until = null, ?int $untilOffset = null): array
     {
         $played = [];
         $positions = [];
         $onField = [];
+        $moved = [];
+        $elapsed = 0;
         $substitutions = $this->substitutions->groupBy('period_id');
 
         foreach ($this->periods() as $period) {
@@ -326,6 +398,10 @@ class MatchTimeline
                     $cursor = max($cursor, $at);
                 }
 
+                if (! array_key_exists($substitution->team_member_id, $onField) || $substitution->direction === SubstitutionDirection::Off) {
+                    $moved[$substitution->team_member_id] = $elapsed + ($period->type === PeriodType::Play ? min($substitution->offset_seconds, $length) : 0);
+                }
+
                 if ($substitution->direction === SubstitutionDirection::On) {
                     $onField[$substitution->team_member_id] = $substitution->zone;
                 } else {
@@ -335,10 +411,11 @@ class MatchTimeline
 
             if ($period->type === PeriodType::Play) {
                 $this->credit($played, $positions, $onField, $length - $cursor);
+                $elapsed += $length;
             }
         }
 
-        return ['played' => $played, 'positions' => $positions, 'onField' => $onField];
+        return ['played' => $played, 'positions' => $positions, 'onField' => $onField, 'moved' => $moved];
     }
 
     /**

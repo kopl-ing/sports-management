@@ -21,7 +21,7 @@ class GetMatch extends TeamTool
 {
     protected string $name = 'get-match';
 
-    protected string $description = 'One match in full: its format (players on the field, play periods and their length, substitution rules), availability, starting lineup and the zones it uses, referee, and goals with minute and scorer once played.';
+    protected string $description = 'One match in full: its format (players on the field, play periods and their length, substitution rules), availability, the equal share of play and bench minutes per player over the players not marked absent (base playing-time plans on this), starting lineup and the zones it uses, referee, and goals with minute and scorer once played.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -48,7 +48,8 @@ class GetMatch extends TeamTool
 
         return Response::json(array_filter([
             ...ListMatches::summary($team, $match),
-            'format' => self::formatData($match->effectiveFormatPreset(), $match->effectivePlayMinutes()),
+            'format' => self::formatData($match->effectiveFormatPreset(), $match->effectivePlayMinutes(), $match->effectivePlayersOnField()),
+            'equal_share' => self::equalShare($match, count(array_diff($members->keys()->all(), $match->absentMemberIds()))),
             'referee' => $match->referee?->name,
             'referee_duties' => $match->referee ? collect($match->referee_duties)->map->value->all() : null,
             'availability' => TeamMember::sorted($team->members)->map(fn (TeamMember $member) => [

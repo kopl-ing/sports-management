@@ -10,9 +10,11 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\ValidationException;
 use Kopling\SportsManagement\FieldMove;
+use Kopling\SportsManagement\MatchFieldSize;
 use Kopling\SportsManagement\MatchGoal;
 use Kopling\SportsManagement\MatchPeriod;
 use Kopling\SportsManagement\MatchSanction;
+use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\PeriodType;
 use Kopling\SportsManagement\Position;
 use Kopling\SportsManagement\SanctionKind;
@@ -241,6 +243,42 @@ class TrackMatch
         });
     }
 
+    /**
+     * Before kick-off this sets the match's own number; once started, it applies from now on. The format's or current number changes nothing.
+     *
+     * @param array<string, mixed> $input
+     * @return MatchFieldSize|null the change recorded during the match
+     */
+    public static function setFieldSize(TeamMatch $match, array $input): ?MatchFieldSize
+    {
+        $timeline = $match->timeline();
+        $state = $timeline->state();
+        $data = Validator::validate($input, [
+            'players_on_field' => ['required', 'integer', 'min:1', 'max:30'],
+        ]);
+        $players = (int) $data['players_on_field'];
+
+        if ($state === MatchState::Planned) {
+            $match->update(['players_on_field' => $players === $match->effectiveFormatPreset()?->players_on_field ? null : $players]);
+
+            return null;
+        }
+
+        if ($players === $timeline->fieldSizeAt($timeline->matchSeconds())) {
+            return null;
+        }
+
+        $period = $timeline->runningPeriod() ?? throw ValidationException::withMessages([
+            'players_on_field' => __('kopling-sports-management::messages.match_not_running'),
+        ]);
+
+        return $match->fieldSizes()->create([
+            'period_id' => $period->id,
+            'offset_seconds' => $timeline->length($period),
+            'players_on_field' => $players,
+        ]);
+    }
+
     public static function deleteSanction(MatchSanction $sanction): void
     {
         DB::transaction(function () use ($sanction) {
@@ -321,7 +359,7 @@ class TrackMatch
     {
         $lineup = $match->lineup()->pluck('team_member_id')->all();
         $benched = $match->team->members()->onTeamAt($match->scheduled_at)->whereNotIn('id', $lineup)->whereNotIn('id', $match->absentMemberIds())->exists();
-        $needed = $match->effectiveFormatPreset()?->players_on_field ?? 1;
+        $needed = $match->effectivePlayersOnField() ?? 1;
 
         return ! $benched || count($lineup) >= $needed;
     }

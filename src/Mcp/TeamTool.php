@@ -123,9 +123,23 @@ abstract class TeamTool extends Tool
     }
 
     /**
+     * @return array<string, int>|null
+     */
+    public static function equalShare(TeamMatch $match, int $availablePlayers): ?array
+    {
+        $play = $match->fairShareSeconds($availablePlayers);
+
+        return $play === null ? null : [
+            'available_players' => $availablePlayers,
+            'play_minutes_per_player' => intdiv($play, 60),
+            'bench_minutes_per_player' => intdiv($match->fairBenchSeconds($availablePlayers) ?? 0, 60),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
-    protected static function formatData(?TeamFormatPreset $preset, ?int $playMinutes = null): ?array
+    protected static function formatData(?TeamFormatPreset $preset, ?int $playMinutes = null, ?int $playersOnField = null): ?array
     {
         if ($preset === null) {
             return null;
@@ -136,7 +150,7 @@ abstract class TeamTool extends Tool
 
         return array_filter([
             'name' => $preset->name,
-            'players_on_field' => $preset->players_on_field,
+            'players_on_field' => $playersOnField ?? $preset->players_on_field,
             'play_minutes' => $minutes,
             'play_periods' => $periods,
             'minutes_per_period' => $minutes === null || $periods === null ? null : round($minutes / $periods, 1),

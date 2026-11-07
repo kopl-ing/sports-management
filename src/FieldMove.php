@@ -76,6 +76,7 @@ class FieldMove
             }
         }
 
+        $before = count(array_filter($placement, fn (?Position $zone) => $zone !== null));
         foreach ($changes as $memberId => $zone) {
             $placement[$memberId] = $zone;
         }
@@ -83,7 +84,8 @@ class FieldMove
 
         return match (true) {
             $keeperZone !== null && count(array_filter($placement, fn (Position $zone) => $zone === $keeperZone)) > 1 => __('kopling-sports-management::messages.one_keeper'),
-            $maxOnField !== null && count($placement) > $maxOnField => __('kopling-sports-management::messages.too_many_players', ['max' => $maxOnField]),
+            // Already over a lowered limit, a swap may still keep the count.
+            $maxOnField !== null && count($placement) > $maxOnField && count($placement) > $before => __('kopling-sports-management::messages.too_many_players', ['max' => $maxOnField]),
             default => null,
         };
     }

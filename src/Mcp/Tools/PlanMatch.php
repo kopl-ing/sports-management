@@ -31,9 +31,10 @@ class PlanMatch extends TeamTool
         return [
             'opponent_name' => $schema->string()->description('The opposing team.')->required($required),
             'home_away' => $schema->string()->enum(['home', 'away'])->required($required),
-            'scheduled_at' => $schema->string()->format('date-time')->description('Kick-off, e.g. 2026-11-28T09:30 (site time zone).')->required($required),
+            'scheduled_at' => $schema->string()->description('Kick-off in the club\'s local time, without a time zone or UTC offset, e.g. 2026-11-28T09:30.')->required($required),
             'location_address' => $schema->string()->description('Where it is played, for away matches.'),
             'play_minutes' => $schema->integer()->min(1)->max(240)->description('Only when different from the team\'s format.'),
+            'players_on_field' => $schema->integer()->min(1)->max(30)->description('Only when agreed with the opponent to play with more or fewer than the format; before kick-off only.'),
             'public' => $schema->boolean()->description('Whether parents and guests can follow it through a public link.'),
         ];
     }

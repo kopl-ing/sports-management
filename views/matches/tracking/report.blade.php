@@ -57,7 +57,7 @@
                                     @csrf
                                     <h2 class="text-lg font-semibold">{{ $timeline->label($period) }}</h2>
                                     <x-k::form.select :data="['name' => 'type', 'label' => __('kopling-sports-management::messages.type'), 'options' => collect(PeriodType::cases())->mapWithKeys(fn ($case) => [$case->value => __('kopling-sports-management::messages.period_type.'.$case->value)])->all(), 'value' => $period->type->value]" />
-                                    <x-k::form.input :data="['name' => 'duration_minutes', 'label' => __('kopling-sports-management::messages.duration_minutes'), 'type' => 'number', 'value' => $period->duration_seconds !== null ? intdiv($period->duration_seconds, 60) : '']" />
+                                    <x-k::form.input :data="['name' => 'duration_minutes', 'label' => __('kopling-sports-management::messages.duration_minutes'), 'type' => 'number', 'min' => 0, 'max' => 240, 'value' => $period->duration_seconds !== null ? intdiv($period->duration_seconds, 60) : '']" />
                                     <div class="flex gap-2">
                                         <button type="submit" class="btn btn-primary">{{ __('kopling-sports-management::messages.save') }}</button>
                                         <x-k::modal.cancel />

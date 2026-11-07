@@ -8,6 +8,7 @@
             <span>{{ $team->sport->trans(match (true) {
                 $undo['goals'] !== [] => 'recorded_goal',
                 ($undo['sanctions'] ?? []) !== [] => 'recorded_sanction',
+                ($undo['field_sizes'] ?? []) !== [] => 'recorded_field_size',
                 default => 'recorded_change',
             }) }}</span>
             <form autocomplete="off" method="POST" action="{{ route('kopling-sports-management::sports-management/matches.undo', [$team, $match]) }}" hx-boost="true">

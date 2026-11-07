@@ -16,7 +16,7 @@ class LiveMatch extends MatchTool
 {
     protected string $name = 'live-match';
 
-    protected string $description = 'The match as it stands: clock, score, who is on the field and on the bench (with player ids and zones), and the latest events with their ids. Call this first to find the players named during a match.';
+    protected string $description = 'The match as it stands: clock, score, who is on the field and on the bench (with player ids, zones, minutes played and on the bench, minutes since their last substitution, and minutes still to go to the equal share, negative once past it), the equal share of play and bench minutes per player to rotate towards, and the latest events with their ids. Call this first to find the players named during a match.';
 
     protected ?string $permission = null;
 

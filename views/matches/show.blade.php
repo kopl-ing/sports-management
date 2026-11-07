@@ -4,6 +4,7 @@
     $reopening = old('_form');
     $canManage = $isCoach && Gate::allows('kopling-sports-management::manage-matches');
     $preset = $match->effectiveFormatPreset();
+    $needed = $match->effectivePlayersOnField();
     $availableCount = $availability->filter(fn ($status) => $status === \Kopling\SportsManagement\AvailabilityStatus::Available)->count();
     $statusBadge = [
         'available' => 'badge-success',
@@ -113,9 +114,9 @@
         <section class="flex flex-col gap-3">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold">{{ __('kopling-sports-management::messages.availability') }}</h2>
-                <span class="badge {{ $preset ? ($availableCount >= $preset->players_on_field ? 'badge-success' : 'badge-error') : 'badge-ghost' }}">
-                    {{ $preset
-                        ? __('kopling-sports-management::messages.available_count', ['available' => $availableCount, 'needed' => $preset->players_on_field])
+                <span class="badge {{ $needed ? ($availableCount >= $needed ? 'badge-success' : 'badge-error') : 'badge-ghost' }}">
+                    {{ $needed
+                        ? __('kopling-sports-management::messages.available_count', ['available' => $availableCount, 'needed' => $needed])
                         : __('kopling-sports-management::messages.available_count_no_preset', ['available' => $availableCount]) }}
                 </span>
             </div>

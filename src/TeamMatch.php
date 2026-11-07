@@ -26,6 +26,7 @@ class TeamMatch extends Model
         'location_address',
         'format_preset_id',
         'play_minutes',
+        'players_on_field',
         'scheduled_at',
         'referee_person_id',
         'referee_duties',
@@ -38,6 +39,7 @@ class TeamMatch extends Model
             'home_away' => HomeAway::class,
             'scheduled_at' => 'datetime',
             'play_minutes' => 'integer',
+            'players_on_field' => 'integer',
             'referee_duties' => AsEnumCollection::of(RefereeDuty::class),
             'public' => 'boolean',
         ];
@@ -164,7 +166,7 @@ class TeamMatch extends Model
 
     public function effectiveMaxOnField(MatchTimeline $timeline): ?int
     {
-        $max = $this->effectiveFormatPreset()?->players_on_field;
+        $max = $timeline->fieldSizeAt($timeline->matchSeconds());
 
         return $max === null ? null : max(0, $max - $timeline->shortSpells());
     }
@@ -213,6 +215,11 @@ class TeamMatch extends Model
         return $this->hasMany(MatchSubstitution::class, 'match_id');
     }
 
+    public function fieldSizes(): HasMany
+    {
+        return $this->hasMany(MatchFieldSize::class, 'match_id');
+    }
+
     public function goals(): HasMany
     {
         return $this->hasMany(MatchGoal::class, 'match_id');
@@ -220,9 +227,17 @@ class TeamMatch extends Model
 
     public function timeline(): MatchTimeline
     {
-        $this->loadMissing(['periods', 'substitutions', 'goals', 'sanctions']);
+        $this->loadMissing(['periods', 'substitutions', 'goals', 'sanctions', 'fieldSizes']);
 
-        return new MatchTimeline($this->periods, $this->substitutions, $this->goals, breaks: $this->effectiveFormatPreset()?->breaks, sanctions: $this->sanctions);
+        return new MatchTimeline(
+            $this->periods,
+            $this->substitutions,
+            $this->goals,
+            breaks: $this->effectiveFormatPreset()?->breaks,
+            sanctions: $this->sanctions,
+            fieldSize: $this->effectivePlayersOnField(),
+            fieldSizes: $this->fieldSizes,
+        );
     }
 
     /**
@@ -249,18 +264,19 @@ class TeamMatch extends Model
     }
 
     /**
+     * At kick-off; `MatchTimeline::fieldSizeAt()` knows about changes agreed during the match.
+     */
+    public function effectivePlayersOnField(): ?int
+    {
+        return $this->players_on_field ?? $this->effectiveFormatPreset()?->players_on_field;
+    }
+
+    /**
      * Play time each of `$squadSize` players gets when the field is shared equally, in whole minutes so a badge turns green on the minute it shows.
      */
     public function fairShareSeconds(int $squadSize): ?int
     {
-        $minutes = $this->effectivePlayMinutes();
-        $onField = $this->effectiveFormatPreset()?->players_on_field;
-
-        if ($minutes === null || $onField === null || $squadSize === 0) {
-            return null;
-        }
-
-        return intdiv($minutes * min($onField, $squadSize), $squadSize) * 60;
+        return $this->sharedSeconds($squadSize, fn (int $onField) => min($onField, $squadSize));
     }
 
     /**
@@ -276,13 +292,23 @@ class TeamMatch extends Model
 
     public function fairBenchSeconds(int $squadSize): ?int
     {
-        $minutes = $this->effectivePlayMinutes();
-        $onField = $this->effectiveFormatPreset()?->players_on_field;
+        return $this->sharedSeconds($squadSize, fn (int $onField) => max(0, $squadSize - $onField));
+    }
 
-        if ($minutes === null || $onField === null || $squadSize === 0) {
+    /**
+     * @param callable(int): int $places field or bench places for `$squadSize` players at a field size
+     */
+    private function sharedSeconds(int $squadSize, callable $places): ?int
+    {
+        $minutes = $this->effectivePlayMinutes();
+        $spans = $minutes === null ? [] : $this->timeline()->fieldSizeSpans($minutes * 60);
+
+        if ($spans === [] || $squadSize === 0) {
             return null;
         }
 
-        return intdiv($minutes * max(0, $squadSize - $onField), $squadSize) * 60;
+        $total = array_sum(array_map(fn (array $span) => $span[0] * $places($span[1]), $spans));
+
+        return intdiv($total, $squadSize * 60) * 60;
     }
 }

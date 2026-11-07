@@ -41,11 +41,12 @@ class UpdateMatch extends TeamTool
             'location_address' => $match->location_address,
             'format_preset_id' => $match->format_preset_id,
             'play_minutes' => $match->play_minutes,
+            'players_on_field' => $match->players_on_field,
             'referee_person_id' => $match->referee_person_id,
             'referee_duties' => $match->referee_duties ? collect($match->referee_duties)->map->value->all() : null,
             'public' => $match->public,
         ];
-        $changes = array_intersect_key($request->all(), array_flip(['opponent_name', 'home_away', 'scheduled_at', 'location_address', 'play_minutes', 'public']));
+        $changes = array_intersect_key($request->all(), array_flip(['opponent_name', 'home_away', 'scheduled_at', 'location_address', 'play_minutes', 'players_on_field', 'public']));
 
         SaveMatch::handle($team, [...$current, ...$changes], $match);
 

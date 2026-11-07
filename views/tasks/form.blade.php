@@ -29,19 +29,19 @@
     <x-k::form.text-area :data="['name' => 'description', 'label' => __('kopling-sports-management::messages.tasks.description'), 'rows' => 3, 'value' => $field('description', $task?->description)]" />
     @include('kopling-sports-management::tasks.schedule-fields', ['values' => $values])
     <div class="grid grid-cols-2 gap-4">
-        <x-k::form.input :data="['name' => 'min_people', 'label' => __('kopling-sports-management::messages.tasks.min_people'), 'type' => 'number', 'value' => $field('min_people', $task?->min_people)]" />
-        <x-k::form.input :data="['name' => 'max_people', 'label' => __('kopling-sports-management::messages.tasks.max_people'), 'type' => 'number', 'value' => $field('max_people', $task?->max_people)]" />
+        <x-k::form.input :data="['name' => 'min_people', 'label' => __('kopling-sports-management::messages.tasks.min_people'), 'type' => 'number', 'min' => 1, 'max' => 99, 'value' => $field('min_people', $task?->min_people)]" />
+        <x-k::form.input :data="['name' => 'max_people', 'label' => __('kopling-sports-management::messages.tasks.max_people'), 'type' => 'number', 'min' => 1, 'max' => 99, 'value' => $field('max_people', $task?->max_people)]" />
     </div>
     <div class="grid grid-cols-2 gap-4">
-        <x-k::form.input :data="['name' => 'effort_minutes', 'label' => __('kopling-sports-management::messages.tasks.effort_minutes'), 'type' => 'number', 'value' => $field('effort_minutes', $task?->effort_minutes)]" />
-        <x-k::form.input :data="['name' => 'effort_amount', 'label' => __('kopling-sports-management::messages.tasks.effort_amount'), 'type' => 'number', 'value' => $field('effort_amount', $task?->effort_cents === null ? null : $task->effort_cents / 100)]" />
+        <x-k::form.input :data="['name' => 'effort_minutes', 'label' => __('kopling-sports-management::messages.tasks.effort_minutes'), 'type' => 'number', 'min' => 1, 'max' => 10000, 'value' => $field('effort_minutes', $task?->effort_minutes)]" />
+        <x-k::form.input :data="['name' => 'effort_amount', 'label' => __('kopling-sports-management::messages.tasks.effort_amount'), 'type' => 'number', 'min' => 0, 'max' => 100000, 'step' => 0.01, 'value' => $field('effort_amount', $task?->effort_cents === null ? null : $task->effort_cents / 100)]" />
     </div>
     <x-k::form.toggle :data="['name' => 'staff_only', 'label' => __('kopling-sports-management::messages.tasks.staff_only'), 'description' => __('kopling-sports-management::messages.tasks.staff_only_help'), 'value' => $field('staff_only', $task?->staff_only)]" />
     <x-k::form.select :data="['name' => 'undo_window', 'label' => __('kopling-sports-management::messages.tasks.undo_window_label'), 'options' => \Kopling\SportsManagement\TaskUndoWindow::options(), 'description' => __('kopling-sports-management::messages.tasks.undo_window_help'), 'value' => (string) $field('undo_window', $task?->undo_window->value ?? 'any_time'), 'required' => true]" />
     @if ($team->tasks_approve_completion)
         <x-k::form.toggle :data="['name' => 'confirm_each_occurrence', 'label' => __('kopling-sports-management::messages.tasks.confirm_each'), 'description' => __('kopling-sports-management::messages.tasks.confirm_each_help'), 'value' => $field('confirm_each_occurrence', $task?->confirm_each_occurrence)]" />
     @endif
-    <x-k::form.input :data="['name' => 'weight', 'label' => __('kopling-sports-management::messages.tasks.weight'), 'type' => 'number', 'description' => __('kopling-sports-management::messages.tasks.weight_help'), 'value' => $field('weight', $task?->weight ?? 1), 'required' => true]" />
+    <x-k::form.input :data="['name' => 'weight', 'label' => __('kopling-sports-management::messages.tasks.weight'), 'type' => 'number', 'min' => 1, 'max' => 10, 'description' => __('kopling-sports-management::messages.tasks.weight_help'), 'value' => $field('weight', $task?->weight ?? 1), 'required' => true]" />
     @if ($filled && $errors->any())
         <p class="text-error text-sm">{{ $errors->first() }}</p>
     @endif
